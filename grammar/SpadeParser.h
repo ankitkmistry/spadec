@@ -40,15 +40,15 @@ public:
     RuleTypeParam = 16, RuleMemberDecl = 17, RuleFieldDecl = 18, RuleMethodDecl = 19, 
     RuleConstructorDecl = 20, RuleModifiers = 21, RuleAccessors = 22, RuleFunctionDecl = 23, 
     RuleDefinition = 24, RuleParams = 25, RuleParamList = 26, RuleParam = 27, 
-    RuleVarDecl = 28, RuleNames = 29, RuleName = 30, RuleStmts = 31, RuleStmt = 32, 
-    RuleDestructDecl = 33, RuleDestruct = 34, RuleBlock = 35, RuleMatchCase = 36, 
-    RuleCatchStmt = 37, RuleFinallyStmt = 38, RuleBody = 39, RuleElse = 40, 
-    RuleExpr = 41, RuleAssigneeList = 42, RuleAssignee = 43, RuleAssignOperator = 44, 
-    RulePostfix = 45, RuleArgs = 46, RuleArg = 47, RuleIndexer = 48, RuleSlice = 49, 
-    RulePrimary = 50, RuleConstant = 51, RuleLiteral = 52, RuleObjectBuilder = 53, 
-    RuleItems = 54, RuleEntries = 55, RuleEntry = 56, RuleType = 57, RuleTypeArgs = 58, 
-    RuleTypeArg = 59, RuleParamTypes = 60, RuleParamType = 61, RuleTypeList = 62, 
-    RuleMemberTypeList = 63, RuleMemberType = 64
+    RuleVarDecl = 28, RuleName = 29, RuleStmts = 30, RuleStmt = 31, RuleDestructDecl = 32, 
+    RuleDestruct = 33, RuleBlock = 34, RuleMatchCase = 35, RuleCatchStmt = 36, 
+    RuleFinallyStmt = 37, RuleBody = 38, RuleElse = 39, RuleExpr = 40, RuleAssigneeList = 41, 
+    RuleAssignee = 42, RuleAssignOperator = 43, RulePostfix = 44, RuleArgs = 45, 
+    RuleArg = 46, RuleIndexer = 47, RuleSlice = 48, RulePrimary = 49, RuleConstant = 50, 
+    RuleLiteral = 51, RuleObjectBuilder = 52, RuleItems = 53, RuleEntries = 54, 
+    RuleEntry = 55, RuleType = 56, RuleTypeArgs = 57, RuleTypeArg = 58, 
+    RuleParamTypes = 59, RuleParamType = 60, RuleTypeList = 61, RuleMemberTypeList = 62, 
+    RuleMemberType = 63
   };
 
   explicit SpadeParser(antlr4::TokenStream *input);
@@ -97,7 +97,6 @@ public:
   class ParamListContext;
   class ParamContext;
   class VarDeclContext;
-  class NamesContext;
   class NameContext;
   class StmtsContext;
   class StmtContext;
@@ -236,8 +235,6 @@ public:
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *ENUM();
     antlr4::tree::TerminalNode *IDENTIFIER();
-    antlr4::tree::TerminalNode *EXTENDS();
-    ParentContext *parent();
     antlr4::tree::TerminalNode *IMPLEMENTS();
     ParentListContext *parentList();
     EnumListContext *enumList();
@@ -397,13 +394,15 @@ public:
 
   class  TypeParamContext : public antlr4::ParserRuleContext {
   public:
+    SpadeParser::TypeContext *variantOf = nullptr;
+    SpadeParser::TypeContext *defaultValue = nullptr;
     TypeParamContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IDENTIFIER();
-    std::vector<TypeContext *> type();
-    TypeContext* type(size_t i);
     antlr4::tree::TerminalNode *OUT();
     antlr4::tree::TerminalNode *IN();
+    std::vector<TypeContext *> type();
+    TypeContext* type(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -436,9 +435,9 @@ public:
   public:
     FieldDeclContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    NamesContext *names();
+    NameContext *name();
     antlr4::tree::TerminalNode *CONST();
-    ItemsContext *items();
+    ExprContext *expr();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -594,10 +593,10 @@ public:
   public:
     VarDeclContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    NamesContext *names();
+    NameContext *name();
     antlr4::tree::TerminalNode *VAR();
     antlr4::tree::TerminalNode *CONST();
-    ItemsContext *items();
+    ExprContext *expr();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -605,20 +604,6 @@ public:
   };
 
   VarDeclContext* varDecl();
-
-  class  NamesContext : public antlr4::ParserRuleContext {
-  public:
-    NamesContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    std::vector<NameContext *> name();
-    NameContext* name(size_t i);
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  NamesContext* names();
 
   class  NameContext : public antlr4::ParserRuleContext {
   public:
@@ -854,6 +839,8 @@ public:
   public:
     BlockContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    std::vector<BlockContext *> block();
+    BlockContext* block(size_t i);
     std::vector<DeclarationContext *> declaration();
     DeclarationContext* declaration(size_t i);
     std::vector<StmtContext *> stmt();

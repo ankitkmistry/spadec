@@ -7,6 +7,12 @@
 #include "../compiler/tree.hpp"
 #include "ErrorListener.hpp"
 #include "../utils/format.hpp"
+#include "../utils/utils.hpp"
+
+template<typename T>
+void clear(stack<T> &st) {
+    while (!st.empty())st.pop_back();
+}
 
 /**
  * This class provides an empty implementation of SpadeVisitor, which can be
@@ -14,28 +20,217 @@
  */
 class Visitor : public SpadeVisitor {
 private:
-    stack<DeclTree *> scopes;
-    Package *currentPackage = null;
-    stack<Type *> currentTypes;
+    DeclTree *tree = null;
+    vector<Package *> currentPackages;
+    vector<Type *> currentTypes;
     Method *currentMethod = null;
+    vector<Scope *> currentScopes;
 
-    ErrorListener *errorListener = new ErrorListener;
+    ErrorListener *listener;
+    SpadeParser *parser;
 
-    std::function<void(antlr4::Token *, string)> reportError;
+    bool checkingStarted = false;
+
+    [[noreturn]]void reportError(antlr4::Token *token, string msg) {
+        listener->syntaxError(parser, token, token->getLine(), token->getCharPositionInLine(), msg,
+                              std::make_exception_ptr(std::runtime_error(msg)));
+        exit(-1);
+    }
+
+    [[noreturn]]void reportError(antlr4::ParserRuleContext *ctx, string msg) {
+        listener->syntaxError(parser, ctx, msg);
+        exit(-1);
+    }
 
 public:
-    explicit Visitor(function<void(antlr4::Token *, string)> reportError) : reportError(reportError) {}
+    explicit Visitor(SpadeParser *parser, ErrorListener *listener) : listener(listener), parser(parser) {}
 
     std::any visitSep(SpadeParser::SepContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    std::any visitCompilationUnit(SpadeParser::CompilationUnitContext *ctx) override {
-        visitPackageStmt(ctx->packageStmt());
-        for (auto decl: ctx->declaration()) {
-            auto declNode = any_cast<DeclNode *>(visitDeclaration(decl));
-            currentPackage->addChild(declNode);
+    Type *checkType(SpadeParser::ReferenceContext *ctx) {
+        auto tokens = any_cast<vector<antlr4::Token *>>(visitReference(ctx));
+        DeclNode *node = null;
+        for (auto token: tokens) {
+            if (node == null) {
+                node = tree->getRoot();
+            } else {
+                auto itr = std::find_if(node->getChildren().begin(), node->getChildren().end(), [&](DeclNode *node) {
+                    return node->getName()->getText() == token->getText();
+                });
+                if (itr == node->getChildren().end())reportError(ctx, "cannot find symbol");
+                else node = *itr;
+            }
+
+            auto name = node->getName()->getText();
+            if (!name.empty() && name != token->getText()) reportError(ctx, "cannot find symbol");
         }
+        try { return cast<Type *>(node); }
+        catch (const CastError &) { reportError(ctx, "not a kind"); }
+    }
+
+    Type *checkType(SpadeParser::TypeContext *ctx) {
+        // Todo: implement this
+        return null;
+    }
+
+
+    void checkClass(Class *klass) {
+        // Todo: check modifier combination
+        auto ctx = klass->getCtx();
+        if (ctx->parent()) {
+            Type *super = checkType(ctx->parent()->reference());
+            try { klass->setExtends(cast<Class *>(super)); }
+            catch (const CastError &) { reportError(ctx, "not a class"); }
+        }
+        for (auto parent: ctx->parentList()->parent()) {
+            Type *super = checkType(parent->reference());
+            try { klass->getImplements().push_back(cast<Interface *>(super)); }
+            catch (const CastError &) { reportError(ctx, "not an interface"); }
+        }
+        for (auto child: klass->getChildren()) traverseDeclNode(child);
+    }
+
+    void checkInterface(Interface *interface) {
+        // Todo: check modifier combination
+        auto ctx = interface->getCtx();
+        for (auto parent: ctx->parentList()->parent()) {
+            Type *super = checkType(parent->reference());
+            try { interface->getImplements().push_back(cast<Interface *>(super)); }
+            catch (const CastError &) { reportError(ctx, "not an interface"); }
+        }
+        for (auto child: interface->getChildren()) traverseDeclNode(child);
+    }
+
+    void checkEnum(Enum *enumClass) {
+        // Todo: check modifier combination
+        auto ctx = enumClass->getCtx();
+        for (auto parent: ctx->parentList()->parent()) {
+            Type *super = checkType(parent->reference());
+            try { enumClass->getImplements().push_back(cast<Interface *>(super)); }
+            catch (const CastError &) { reportError(ctx, "not an interface"); }
+        }
+        for (auto child: enumClass->getChildren()) traverseDeclNode(child);
+    }
+
+    void checkAnnotation(Annotation *annotation) {
+        // Todo: check modifier combination
+        auto ctx = annotation->getCtx();
+        if (ctx->parent()) {
+            Type *super = checkType(ctx->parent()->reference());
+            try { annotation->setExtends(cast<Annotation *>(super)); }
+            catch (const CastError &) { reportError(ctx, "not an annotation"); }
+        }
+        for (auto parent: ctx->parentList()->parent()) {
+            Type *super = checkType(parent->reference());
+            try { annotation->getImplements().push_back(cast<Interface *>(super)); }
+            catch (const CastError &) { reportError(ctx, "not an interface"); }
+        }
+        for (auto child: annotation->getChildren()) traverseDeclNode(child);
+    }
+
+    void checkTypeParam(TypeParam *typeParam) {
+        auto ctx = typeParam->getCtx();
+        if (ctx->OUT() != null) typeParam->setVariant(TypeParam::Variant::COVARIANT);
+        else if (ctx->IN() != null) typeParam->setVariant(TypeParam::Variant::CONTRAVARIANT);
+        else {
+            typeParam->setVariant(TypeParam::Variant::INVARIANT);
+            if (ctx->variantOf)
+                reportError(ctx->variantOf, "variant cannot be specified to an invariant kind parameter");
+        }
+
+        if (ctx->variantOf)
+            typeParam->setVariantOf(checkType(ctx->variantOf));
+        if (ctx->defaultValue)
+            typeParam->setDefaultValue(checkType(ctx->defaultValue));
+    }
+
+    Type *checkExpr(SpadeParser::ExprContext *ctx) {
+        return null;
+    }
+
+    void checkVariable(Variable *variable) {
+        auto nameCtx = variable->getNameCtx();
+        auto valueCtx = variable->getExprCtx();
+
+        Type *exprType = checkExpr(valueCtx);
+        auto type = any_cast<Type *>(visitName(nameCtx));
+        if(type==null&&exprType==null)reportError(nameCtx, "type of the variable cannot be inferred");
+        else if(type==null) variable->setType(exprType);
+        else if(exprType==null) variable->setType(type);
+        else{
+            if(type->isSuperOf(exprType)) variable->setType(type); // Need to get a cast
+            else reportError(valueCtx, "cannot be assigned");
+        }
+    }
+
+    void traverseDeclNode(DeclNode *node) {
+        switch (node->getKind()) {
+            case DeclNode::Kind::PACKAGE: {
+                auto package = cast<Package *>(node);
+                currentPackages.push_back(package);
+                for (auto child: package->getChildren()) traverseDeclNode(child);
+                currentPackages.pop_back();
+                break;
+            }
+            case DeclNode::Kind::SCOPE:
+                currentScopes.push_back(cast<Scope *>(node));
+                currentScopes.pop_back();
+                break;
+            case DeclNode::Kind::TYPE: {
+                Type *type = cast<Type *>(node);
+                currentTypes.push_back(type);
+                switch (type->getTypeKind()) {
+                    case Type::Kind::CLASS:
+                        checkClass(cast<Class *>(type));
+                        break;
+                    case Type::Kind::INTERFACE:
+                        checkInterface(cast<Interface *>(type));
+                        break;
+                    case Type::Kind::ENUM:
+                        checkEnum(cast<Enum *>(type));
+                        break;
+                    case Type::Kind::ANNOTATION:
+                        checkAnnotation(cast<Annotation *>(type));
+                        break;
+                }
+                currentTypes.pop_back();
+                break;
+            }
+            case DeclNode::Kind::METHOD:
+                currentMethod = cast<Method *>(node);
+                break;
+            case DeclNode::Kind::CONSTRUCTOR:
+                break;
+            case DeclNode::Kind::VARIABLE:
+                checkVariable(cast<Variable *>(node));
+                break;
+            case DeclNode::Kind::TYPE_PARAM:
+                checkTypeParam(cast<TypeParam *>(node));
+                break;
+        }
+    }
+
+    std::any visitCompilationUnit(SpadeParser::CompilationUnitContext *ctx) override {
+        if (ctx->packageStmt() == null) {
+            currentPackages.push_back(new Package(null));
+            tree = new DeclTree(currentPackages.back());
+        } else
+            visitPackageStmt(ctx->packageStmt());
+
+        for (auto decl: ctx->declaration()) visitDeclaration(decl);
+
+        // Reset everything
+        currentPackages.clear();
+        currentTypes.clear();
+        currentMethod = null;
+        currentScopes.clear();
+
+        checkingStarted = true;
+        traverseDeclNode(tree->getRoot());
+        checkingStarted = false;
+
         return null;
     }
 
@@ -43,13 +238,13 @@ public:
         auto list = any_cast<vector<antlr4::Token *>>(visitReference(ctx->reference()));
         for (int i = 0; i < list.size(); ++i) {
             auto item = list[i];
-            if (scopes.empty()) {
-                currentPackage = new Package(item);
-                scopes.push(new DeclTree(currentPackage));
+            if (tree == null) {
+                currentPackages.push_back(new Package(item));
+                tree = new DeclTree(currentPackages.back());
             } else {
                 auto package = new Package(item);
-                currentPackage->addChild(package);
-                currentPackage = package;
+                currentPackages.back()->addChild(package);
+                currentPackages.push_back(package);
             }
         }
         return null;
@@ -66,21 +261,25 @@ public:
         else if (ctx->interfaceDecl() != null)decl = any_cast<DeclNode *>(visitInterfaceDecl(ctx->interfaceDecl()));
         else if (ctx->enumDecl() != null)decl = any_cast<DeclNode *>(visitEnumDecl(ctx->enumDecl()));
         else if (ctx->annoDecl() != null)decl = any_cast<DeclNode *>(visitAnnoDecl(ctx->annoDecl()));
+        else if (ctx->functionDecl() != null)decl = any_cast<DeclNode *>(visitFunctionDecl(ctx->functionDecl()));
+        else if (ctx->varDecl() != null)decl = any_cast<DeclNode *>(visitVarDecl(ctx->varDecl()));
+        decl->setModifiers(modifiers);
         return decl;
     }
 
     std::any visitEnumDecl(SpadeParser::EnumDeclContext *ctx) override {
-        auto *decl = new Enum(ctx->IDENTIFIER()->getSymbol(), ctx);
-        currentTypes.push(decl);
+        auto *decl = new Enum(ctx);
+        currentTypes.push_back(decl);
 
         for (auto member: ctx->memberDecl()) {
             visitMemberDecl(member);
         }
 
-        currentTypes.pop();
-        if (currentTypes.top() != null)currentTypes.top()->addChild(decl);
-        else currentPackage->addChild(decl);
-        return decl;
+        currentTypes.pop_back();
+        if (currentMethod != null)currentScopes.back()->addChild(decl);
+        else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
+        else currentPackages.back()->addChild(decl);
+        return cast<DeclNode *>(decl);
     }
 
     std::any visitEnumList(SpadeParser::EnumListContext *ctx) override {
@@ -92,45 +291,51 @@ public:
     }
 
     std::any visitAnnoDecl(SpadeParser::AnnoDeclContext *ctx) override {
-        auto *decl = new Annotation(ctx->declName()->IDENTIFIER()->getSymbol(), ctx);
-        currentTypes.push(decl);
+        auto *decl = new Annotation(ctx);
+        currentTypes.push_back(decl);
 
+        visitDeclName(ctx->declName());
         for (auto member: ctx->memberDecl()) {
             visitMemberDecl(member);
         }
 
-        currentTypes.pop();
-        if (currentTypes.top() != null)currentTypes.top()->addChild(decl);
-        else currentPackage->addChild(decl);
-        return decl;
+        currentTypes.pop_back();
+        if (currentMethod != null)currentScopes.back()->addChild(decl);
+        else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
+        else currentPackages.back()->addChild(decl);
+        return cast<DeclNode *>(decl);
     }
 
     std::any visitInterfaceDecl(SpadeParser::InterfaceDeclContext *ctx) override {
-        auto *decl = new Interface(ctx->declName()->IDENTIFIER()->getSymbol(), ctx);
-        currentTypes.push(decl);
+        auto *decl = new Interface(ctx);
+        currentTypes.push_back(decl);
 
+        visitDeclName(ctx->declName());
         for (auto member: ctx->memberDecl()) {
             visitMemberDecl(member);
         }
 
-        currentTypes.pop();
-        if (currentTypes.top() != null)currentTypes.top()->addChild(decl);
-        else currentPackage->addChild(decl);
-        return decl;
+        currentTypes.pop_back();
+        if (currentMethod != null)currentScopes.back()->addChild(decl);
+        else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
+        else currentPackages.back()->addChild(decl);
+        return cast<DeclNode *>(decl);
     }
 
     std::any visitClassDecl(SpadeParser::ClassDeclContext *ctx) override {
-        auto *decl = new Class(ctx->declName()->IDENTIFIER()->getSymbol(), ctx);
-        currentTypes.push(decl);
+        auto *decl = new Class(ctx);
+        currentTypes.push_back(decl);
 
+        visitDeclName(ctx->declName());
         for (auto member: ctx->memberDecl()) {
             visitMemberDecl(member);
         }
 
-        currentTypes.pop();
-        if (currentTypes.top() != null)currentTypes.top()->addChild(decl);
-        else currentPackage->addChild(decl);
-        return decl;
+        currentTypes.pop_back();
+        if (currentMethod != null)currentScopes.back()->addChild(decl);
+        else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
+        else currentPackages.back()->addChild(decl);
+        return cast<DeclNode *>(decl);
     }
 
     std::any visitParentList(SpadeParser::ParentListContext *ctx) override {
@@ -142,11 +347,14 @@ public:
     }
 
     std::any visitDeclName(SpadeParser::DeclNameContext *ctx) override {
-        return visitChildren(ctx);
+        currentTypes.back()->setName(ctx->IDENTIFIER()->getSymbol());
+        auto typeParams = any_cast<vector<SpadeParser::TypeParamContext *>>(visitTypeParams(ctx->typeParams()));
+        for (auto typeParam: typeParams) currentTypes.back()->addChild(new TypeParam(typeParam));
+        return null;
     }
 
     std::any visitTypeParams(SpadeParser::TypeParamsContext *ctx) override {
-        return visitChildren(ctx);
+        return ctx->typeParam();
     }
 
     std::any visitTypeParam(SpadeParser::TypeParamContext *ctx) override {
@@ -154,19 +362,36 @@ public:
     }
 
     std::any visitMemberDecl(SpadeParser::MemberDeclContext *ctx) override {
-        return visitChildren(ctx);
+        auto modifiers = any_cast<vector<antlr4::Token *>>(visitModifiers(ctx->modifiers()));
+        DeclNode *decl = null;
+        if (ctx->classDecl() != null)decl = any_cast<DeclNode *>(visitClassDecl(ctx->classDecl()));
+        else if (ctx->interfaceDecl() != null)decl = any_cast<DeclNode *>(visitInterfaceDecl(ctx->interfaceDecl()));
+        else if (ctx->enumDecl() != null)decl = any_cast<DeclNode *>(visitEnumDecl(ctx->enumDecl()));
+        else if (ctx->fieldDecl() != null)decl = any_cast<DeclNode *>(visitFieldDecl(ctx->fieldDecl()));
+        else if (ctx->methodDecl() != null)decl = any_cast<DeclNode *>(visitMethodDecl(ctx->methodDecl()));
+        else if (ctx->constructorDecl() != null)
+            decl = any_cast<DeclNode *>(visitConstructorDecl(ctx->constructorDecl()));
+        decl->setModifiers(modifiers);
+        return decl;
     }
 
     std::any visitFieldDecl(SpadeParser::FieldDeclContext *ctx) override {
-        return visitChildren(ctx);
+        auto decl = new Variable(ctx->name(), ctx->expr(), ctx->CONST() == null, Variable::VarKind::FIELD);
+        currentTypes.back()->addChild(decl);
+        return cast<DeclNode *>(decl);
     }
 
     std::any visitMethodDecl(SpadeParser::MethodDeclContext *ctx) override {
-        return visitChildren(ctx);
+        auto decl = new Method(ctx);
+        if (currentTypes.empty()) currentPackages.back()->addChild(decl);
+        else currentTypes.back()->addChild(decl);
+        return cast<DeclNode *>(decl);
     }
 
     std::any visitConstructorDecl(SpadeParser::ConstructorDeclContext *ctx) override {
-        return visitChildren(ctx);
+        auto decl = new Constructor(ctx);
+        currentTypes.back()->addChild(decl);
+        return decl;
     }
 
     std::any visitModifiers(SpadeParser::ModifiersContext *ctx) override {
@@ -181,12 +406,9 @@ public:
                 tokens.push_back(accessor);
 
         map<antlr4::Token *, int> table;
-        for (auto token: tokens) {
+        for (auto token: tokens)
             try { table.at(token)++; }
-            catch (std::out_of_range &) {
-                table[token] = 1;
-            }
-        }
+            catch (std::out_of_range &) { table[token] = 1; }
 
         for (auto [token, occurrences]: table)
             if (occurrences > 1)
@@ -205,7 +427,7 @@ public:
     }
 
     std::any visitFunctionDecl(SpadeParser::FunctionDeclContext *ctx) override {
-        return visitChildren(ctx);
+        return visitMethodDecl(ctx->methodDecl());
     }
 
     std::any visitDefinition(SpadeParser::DefinitionContext *ctx) override {
@@ -225,15 +447,17 @@ public:
     }
 
     std::any visitVarDecl(SpadeParser::VarDeclContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    std::any visitNames(SpadeParser::NamesContext *ctx) override {
-        return visitChildren(ctx);
+        auto decl = new Variable(ctx->name(), ctx->expr(),
+                                 ctx->CONST() == null, currentMethod == null
+                                                       ? Variable::VarKind::LOCAL
+                                                       : Variable::VarKind::GLOBAL);
+        if (currentMethod != null)currentScopes.back()->addChild(decl);
+        else currentPackages.back()->addChild(decl);
+        return decl;
     }
 
     std::any visitName(SpadeParser::NameContext *ctx) override {
-        return visitChildren(ctx);
+        return ctx->type() ? checkType(ctx->type()) : null;
     }
 
     std::any visitStmts(SpadeParser::StmtsContext *ctx) override {
@@ -505,7 +729,7 @@ public:
     }
 
     std::any visitItems(SpadeParser::ItemsContext *ctx) override {
-        return visitChildren(ctx);
+        return ctx->expr();
     }
 
     std::any visitEntries(SpadeParser::EntriesContext *ctx) override {
@@ -584,7 +808,5 @@ public:
     std::any visitMemberType(SpadeParser::MemberTypeContext *ctx) override {
         return visitChildren(ctx);
     }
-
-
 };
 

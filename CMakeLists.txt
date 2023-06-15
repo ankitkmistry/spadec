@@ -43,5 +43,5 @@ find_package(ANTLR REQUIRED)
 
 add_executable(spadec main.cpp
 #        ${ANTLR_SPADE_CXX_OUTPUTS}
-        grammar/SpadeVisitor.cpp grammar/SpadeParser.cpp grammar/SpadeLexer.cpp grammar/Visitor.cpp compiler/node.cpp compiler/node.hpp compiler/tree.cpp compiler/tree.hpp grammar/ErrorListener.cpp grammar/ErrorListener.hpp utils/utils.hpp)
+        grammar/SpadeVisitor.cpp grammar/SpadeParser.cpp grammar/SpadeLexer.cpp grammar/Visitor.cpp compiler/node.cpp compiler/node.hpp compiler/tree.cpp compiler/tree.hpp grammar/ErrorListener.cpp grammar/ErrorListener.hpp utils/utils.hpp utils/utils.cpp utils/sign.cpp)
 target_link_libraries(spadec antlr4_static)

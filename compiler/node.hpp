@@ -5,15 +5,25 @@
 #include "../grammar/SpadeParser.h"
 
 class DeclNode {
+public:
+    enum class Kind {
+        PACKAGE, SCOPE, TYPE, METHOD, CONSTRUCTOR, VARIABLE, TYPE_PARAM
+    };
 protected:
-    vector<DeclNode *> children;
-    DeclNode *parent = null;
+    Kind kind;
     antlr4::Token *name;
+    DeclNode *parent = null;
+    vector<DeclNode *> children;
+    vector<antlr4::Token *> modifiers;
 
-    explicit DeclNode(antlr4::Token *name) : name(name) {}
+    explicit DeclNode(Kind type, antlr4::Token *name) : name(name), kind(type) {}
 
 public:
     void addChild(DeclNode *node);
+
+    Kind getKind() const { return kind; }
+
+    void setKind(Kind type_) { kind = type_; }
 
     const vector<DeclNode *> &getChildren() const { return children; }
 
@@ -29,23 +39,42 @@ public:
 
     void setName(antlr4::Token *name_) { name = name_; }
 
+    const vector<antlr4::Token *> &getModifiers() const { return modifiers; }
+
+    void setModifiers(const vector<antlr4::Token *> &modifiers_) { modifiers = modifiers_; }
+
     virtual string getSign() = 0;
 };
 
 class Package : public DeclNode {
 public:
-    explicit Package(antlr4::Token *name) : DeclNode(name) {}
+    explicit Package(antlr4::Token *name) : DeclNode(Kind::PACKAGE, name) {}
 
     string getSign() override;
+};
+
+class Scope : public DeclNode {
+public:
+    explicit Scope(antlr4::Token *name) : DeclNode(Kind::SCOPE, name) {}
 };
 
 class Interface;
 
 class Type : public DeclNode {
+public :
+    enum class Kind {
+        CLASS, INTERFACE, ENUM, ANNOTATION
+    };
 protected:
+    Kind typeKind;
     vector<Interface *> implements;
+
+    explicit Type(Kind typeKind, antlr4::Token *name) : DeclNode(DeclNode::Kind::TYPE, name), typeKind(typeKind) {}
+
 public:
-    explicit Type(antlr4::Token *name) : DeclNode(name) {}
+    Kind getTypeKind() const { return typeKind; }
+
+    void setTypeKind(Kind typeKind_) { typeKind = typeKind_; }
 
     const vector<Interface *> &getImplements() const { return implements; }
 
@@ -56,85 +85,154 @@ public:
 
 class Class : public Type {
 private:
-    const SpadeParser::ClassDeclContext *ctx;
-    Class *extends;
+    SpadeParser::ClassDeclContext *ctx;
+    Class *extends = null;
 public:
-    explicit Class(antlr4::Token *name, SpadeParser::ClassDeclContext *ctx) : Type(name), ctx(ctx) {}
+    explicit Class(SpadeParser::ClassDeclContext *ctx) : Type(Kind::CLASS, null),
+                                                         ctx(ctx) {}
 
-    const SpadeParser::ClassDeclContext *getCtx() const { return ctx; }
+    Class *getExtends() const { return extends; }
+
+    void setExtends(Class *extends_) { extends = extends_; }
+
+    SpadeParser::ClassDeclContext *getCtx() const { return ctx; }
 
     string getSign() override;
 };
 
 class Interface : public Type {
 private:
-    const SpadeParser::InterfaceDeclContext *ctx;
+    SpadeParser::InterfaceDeclContext *ctx;
 public:
-    explicit Interface(antlr4::Token *name, SpadeParser::InterfaceDeclContext *ctx) : Type(name), ctx(ctx) {}
+    explicit Interface(SpadeParser::InterfaceDeclContext *ctx) : Type(Kind::INTERFACE,
+                                                                      null),
+                                                                 ctx(ctx) {}
 
-    const SpadeParser::InterfaceDeclContext *getCtx() const { return ctx; }
+    SpadeParser::InterfaceDeclContext *getCtx() const { return ctx; }
 
     string getSign() override;
 };
 
 class Enum : public Type {
 private:
-    const SpadeParser::EnumDeclContext *ctx;
+    SpadeParser::EnumDeclContext *ctx;
 public:
-    explicit Enum(antlr4::Token *name, SpadeParser::EnumDeclContext *ctx) : Type(name), ctx(ctx) {}
+    explicit Enum(SpadeParser::EnumDeclContext *ctx) : Type(Kind::ENUM, ctx->IDENTIFIER()->getSymbol()), ctx(ctx) {}
 
-    const SpadeParser::EnumDeclContext *getCtx() const { return ctx; }
+    SpadeParser::EnumDeclContext *getCtx() const { return ctx; }
 
     string getSign() override;
 };
 
 class Annotation : public Type {
 private:
-    const SpadeParser::AnnoDeclContext *ctx;
+    SpadeParser::AnnoDeclContext *ctx;
+    Annotation *extends = null;
 public:
-    explicit Annotation(antlr4::Token *name, SpadeParser::AnnoDeclContext *ctx) : Type(name), ctx(ctx) {}
+    explicit Annotation(SpadeParser::AnnoDeclContext *ctx) : Type(Kind::ANNOTATION,
+                                                                  null),
+                                                             ctx(ctx) {}
 
-    const SpadeParser::AnnoDeclContext *getCtx() const { return ctx; }
+    SpadeParser::AnnoDeclContext *getCtx() const { return ctx; }
+
+    Annotation *getExtends() const { return extends; }
+
+    void setExtends(Annotation *extends_) { extends = extends_; }
 
     string getSign() override;
 };
 
 class Method : public DeclNode {
 private:
-    const SpadeParser::MethodDeclContext *ctx;
+    SpadeParser::MethodDeclContext *ctx;
 public:
-    explicit Method(antlr4::Token *name, SpadeParser::MethodDeclContext *ctx) : DeclNode(name), ctx(ctx) {}
+    explicit Method(SpadeParser::MethodDeclContext *ctx) : DeclNode(Kind::METHOD, ctx->IDENTIFIER()->getSymbol()),
+                                                           ctx(ctx) {}
 
-    const SpadeParser::MethodDeclContext *getCtx() const { return ctx; }
+    SpadeParser::MethodDeclContext *getCtx() const { return ctx; }
 
     string getSign() override;
 };
 
-enum class VariableType {
-    GLOBAL, LOCAL, ARG
+
+class Constructor : public DeclNode {
+private:
+    SpadeParser::ConstructorDeclContext *ctx;
+public:
+    explicit Constructor(SpadeParser::ConstructorDeclContext *ctx) : DeclNode(Kind::CONSTRUCTOR,
+                                                                              ctx->INIT()->getSymbol()), ctx(ctx) {}
+
+    SpadeParser::ConstructorDeclContext *getCtx() const { return ctx; }
+
+    string getSign() override;
 };
 
 class Variable : public DeclNode {
-protected:
-    VariableType type;
 public:
-    Variable(antlr4::Token *name, VariableType type) : DeclNode(name), type(type) {}
+    enum class VarKind {
+        GLOBAL, LOCAL, ARG, FIELD
+    };
+private:
+    bool assignable;
+    VarKind varKind;
+    SpadeParser::NameContext *nameCtx;
+    SpadeParser::ExprContext *exprCtx;
 
-    VariableType getType() const { return type; }
+    Type *type;
+public:
+    Variable(SpadeParser::NameContext *nameCtx, SpadeParser::ExprContext *exprCtx, bool assignable, VarKind type)
+            : DeclNode(DeclNode::Kind::VARIABLE, nameCtx->IDENTIFIER()->getSymbol()),
+              assignable(assignable),
+              varKind(type),
+              nameCtx(nameCtx),
+              exprCtx(exprCtx) {}
 
-    void setType(VariableType type_) { type = type_; }
+    bool isAssignable() const { return assignable; }
+
+    void setAssignable(bool assignable_) { assignable = assignable_; }
+
+    VarKind getVarType() const { return varKind; }
+
+    void setVarType(VarKind type_) { varKind = type_; }
+
+    SpadeParser::NameContext *getNameCtx() const { return nameCtx; }
+
+    SpadeParser::ExprContext *getExprCtx() const { return exprCtx; }
+
+    Type *getType() const { return type; }
+
+    void setType(Type *type_) { type = type_; }
 
     string getSign() override;
-};
-
-class Constant : public Variable {
-public:
-    Constant(antlr4::Token *name, VariableType type) : Variable(name, type) {}
 };
 
 class TypeParam : public DeclNode {
 public:
-    explicit TypeParam(antlr4::Token *name) : DeclNode(name) {}
+    enum class Variant {
+        CONTRAVARIANT, INVARIANT, COVARIANT
+    };
+private:
+    SpadeParser::TypeParamContext *ctx;
+    Variant variant;
+    Type *variantOf;
+    Type *defaultValue;
+public:
+    explicit TypeParam(SpadeParser::TypeParamContext *ctx) : DeclNode(Kind::TYPE_PARAM,
+                                                                      ctx->IDENTIFIER()->getSymbol()), ctx(ctx) {}
+
+    SpadeParser::TypeParamContext *getCtx() const { return ctx; }
+
+    Variant getVariant() const { return variant; }
+
+    void setVariant(Variant variant_) { variant = variant_; }
+
+    Type *getVariantOf() const { return variantOf; }
+
+    void setVariantOf(Type *variantOf_) { variantOf = variantOf_; }
+
+    Type *getDefaultValue() const { return defaultValue; }
+
+    void setDefaultValue(Type *defaultValue_) { defaultValue = defaultValue_; }
 
     string getSign() override;
 };

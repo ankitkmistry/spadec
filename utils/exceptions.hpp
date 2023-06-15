@@ -28,7 +28,7 @@ private:
 
 public:
     CastError(const string &from, const string &to)
-            : FatalError(format("cannot cast type '%s' to type '%s'", from.c_str(), to.c_str())),
+            : FatalError(format("cannot cast varKind '%s' to varKind '%s'", from.c_str(), to.c_str())),
               from(from), to(to) {}
 
     const string &getFrom() const { return from; }

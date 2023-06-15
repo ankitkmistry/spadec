@@ -25,14 +25,10 @@ int main() {
     parser.removeErrorListeners();
     auto listener = new ErrorListener;
     parser.addErrorListener(listener);
-
-    Visitor visitor{[&](antlr4::Token *token, string msg) {
-        listener->syntaxError(&parser, token, token->getLine(), token->getCharPositionInLine(), msg,
-                              std::make_exception_ptr(std::runtime_error(msg)));
-    }};
-
+    Visitor visitor{&parser, listener};
     auto tree = parser.compilationUnit();
     std::cout << tree->getText() << "\n";
+    visitor.visitCompilationUnit(tree);
 
     return 0;
 }

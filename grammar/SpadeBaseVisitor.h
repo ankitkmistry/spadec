@@ -131,10 +131,6 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitNames(SpadeParser::NamesContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
   virtual std::any visitName(SpadeParser::NameContext *ctx) override {
     return visitChildren(ctx);
   }

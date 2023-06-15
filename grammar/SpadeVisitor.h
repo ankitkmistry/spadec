@@ -77,8 +77,6 @@ public:
 
     virtual std::any visitVarDecl(SpadeParser::VarDeclContext *context) = 0;
 
-    virtual std::any visitNames(SpadeParser::NamesContext *context) = 0;
-
     virtual std::any visitName(SpadeParser::NameContext *context) = 0;
 
     virtual std::any visitStmts(SpadeParser::StmtsContext *context) = 0;

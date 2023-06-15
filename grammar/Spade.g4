@@ -20,7 +20,7 @@ declaration: modifiers (
             );
 
 // Enum declaration
-enumDecl: ENUM IDENTIFIER (EXTENDS parent)? (IMPLEMENTS parentList)? ('{' enumList sep memberDecl* '}')?;
+enumDecl: ENUM IDENTIFIER (IMPLEMENTS parentList)? ('{' enumList sep memberDecl* '}')?;
 
 enumList: enumerator (',' enumerator)* ','?;
 enumerator: IDENTIFIER ('=' expr | '(' args? ')')?;
@@ -37,7 +37,7 @@ parent: reference ('<'typeArgs'>')?;
 
 declName: IDENTIFIER ('<' typeParams '>')?;
 typeParams: typeParam (',' typeParam)* ','?;
-typeParam: (OUT | IN)? IDENTIFIER (':' type)? ('=' type)?;
+typeParam: (OUT | IN)? IDENTIFIER (':' variantOf=kind)? ('=' defaultValue=kind)?;
 
 // Member declaration
 memberDecl: modifiers (
@@ -49,8 +49,8 @@ memberDecl: modifiers (
               | enumDecl
            ) sep;
 
-fieldDecl: CONST? names ('=' items)?;
-methodDecl: IDENTIFIER '(' params? ')' ('->' type)? definition?;
+fieldDecl: CONST? name ('=' expr)?;
+methodDecl: IDENTIFIER '(' params? ')' ('->' kind)? definition?;
 constructorDecl: INIT '(' params? ')' definition?;
 
 modifiers: (ABSTRACT | FINAL | STATIC | INLINE | accessors)*;
@@ -63,13 +63,12 @@ definition: '=' stmt sep | block;
 // Parameter declaration
 params: paramList ('|' paramList?)?;
 paramList: param (',' param)* ','?;
-param: (CONST | REF)? '*'? (IDENTIFIER | '_') (':' type)? ('=' expr)?;
+param: (CONST | REF)? '*'? (IDENTIFIER | '_') (':' kind)? ('=' expr)?;
 
 // Variable declaration
-varDecl: (VAR | CONST) names ('=' items)?;
+varDecl: (VAR | CONST) name ('=' expr)?;
 
-names: name (',' name)* ','?;
-name: IDENTIFIER (':' type)? | destructDecl;
+name: IDENTIFIER (':' kind)? | destructDecl;
 
 // Statement
 stmts: stmt sep | block;
@@ -110,7 +109,7 @@ else: ELSE body;
 expr
     : ('!'|'~'|'-'|'+')? postfix                            # unaryExpr
     | expr '??' expr                                        # elvisExpr
-    | expr AS '?'? type                                   # castExpr
+    | expr AS '?'? kind                                   # castExpr
     | <assoc=right> expr '**' expr                          # powerExpr
     | expr ('*'|'/'|'%') expr                               # factorExpr
     | expr ('+'|'-') expr                                   # termExpr
@@ -124,7 +123,7 @@ expr
     | expr AND expr                                       # andExpr
     | expr OR expr                                        # orExpr
     | expr '?' expr ':' expr                                # ternaryExpr
-    | (param | '(' params? ')') '->' type? (block | expr)   # lambdaExpr
+    | (param | '(' params? ')') '->' kind? (block | expr)   # lambdaExpr
     | assigneeList assignOperator items                     # assignExpr
     ;
 
@@ -158,40 +157,40 @@ primary: constant                       # constantExpr
        | '{' items '}'                  # setExpr
        | '{' entries? '}'               # mapExpr
        | '[' items? ']'                 # listExpr
-       | type                           # typeExpr
+       | kind                           # typeExpr
        ;
 
 constant: TRUE | FALSE | NULL | literal;
 literal: INTEGER | FLOAT | STRING | IDENTIFIER;
 
-objectBuilder: OBJECT (':' type)? '{' /*member**/ '}';
+objectBuilder: OBJECT (':' kind)? '{' /*member**/ '}';
 
 items: expr (',' expr)* ','?;
 
 entries: entry (',' entry)* ','?;
 entry: primary ':' expr;
 
-// Type expressions
-type: type '?'                              # nullableType
-    | type '&' type                         # intersectionType
-    | type '|' type                         # unionType
+// Kind expressions
+kind: kind '?'                              # nullableType
+    | kind '&' kind                         # intersectionType
+    | kind '|' kind                         # unionType
     | reference ('<' typeArgs '>')?              # referenceType
-    | '(' paramTypes ')' '->' type          # functionType
+    | '(' paramTypes ')' '->' kind          # functionType
     | TYPE                                # literalType
     | OBJECT ('{' memberTypeList? '}')?  # objectType
     | TYPEOF '(' expr ')'                 # typeofType
     ;
 
 typeArgs: typeArg (',' typeArg)* ','?;
-typeArg: (OUT | IN)? type;
+typeArg: (OUT | IN)? kind;
 
 paramTypes: paramType (',' paramType)* ','?;
-paramType: '*'? type;
+paramType: '*'? kind;
 
-typeList: type (',' type)* ','?;
+typeList: kind (',' kind)* ','?;
 
 memberTypeList: memberType (',' memberType)* ','?;
-memberType: IDENTIFIER (':' type)?;
+memberType: IDENTIFIER (':' kind)?;
 
 // Keywords
 
@@ -253,7 +252,7 @@ FALSE: 'false';
 NULL: 'null';
 // Special keywords
 OBJECT: 'object';
-TYPE: 'type';
+TYPE: 'varKind';
 TYPEOF: 'typeof';
 
 // Contextual keywords
