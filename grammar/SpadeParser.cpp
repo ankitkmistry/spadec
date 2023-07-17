@@ -52,7 +52,7 @@ void spadeParserInitialize() {
       "block", "matchCase", "catchStmt", "finallyStmt", "body", "else", 
       "expr", "assigneeList", "assignee", "assignOperator", "postfix", "args", 
       "arg", "indexer", "slice", "primary", "constant", "literal", "objectBuilder", 
-      "items", "entries", "entry", "kind", "typeArgs", "typeArg", "paramTypes",
+      "items", "entries", "entry", "type", "typeArgs", "typeArg", "paramTypes", 
       "paramType", "typeList", "memberTypeList", "memberType"
     },
     std::vector<std::string>{

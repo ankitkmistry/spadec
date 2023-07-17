@@ -9,8 +9,6 @@
 using namespace antlr4;
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
-
     std::ifstream stream;
 #if defined(OS_WINDOWS)
     stream.open(R"(D:\Programming (Ankit)\Projects\spadec\fib.sp)");

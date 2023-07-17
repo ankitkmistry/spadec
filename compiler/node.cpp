@@ -46,3 +46,14 @@ string Variable::getSign() {
 string TypeParam::getSign() {
     return (parent != null ? parent->getSign() + "." : "") + name->getText();
 }
+
+bool Type::isSuperOf(Type *type) const {
+    if (type == this)return true;
+    if ((is<Class *>(type) && cast<Class *>(type)->getExtends() == this) ||
+        (is<Annotation *>(type) && cast<Annotation *>(type)->getExtends() == this))
+        return true;
+    for (auto implement: implements) {
+        if (implement->isSuperOf(type))return true;
+    }
+    return false;
+}

@@ -3,6 +3,7 @@
 
 #include "../utils/common.hpp"
 #include "../grammar/SpadeParser.h"
+#include "../utils/utils.hpp"
 
 class DeclNode {
 public:
@@ -54,8 +55,12 @@ public:
 };
 
 class Scope : public DeclNode {
+private:
+    SpadeParser::BlockContext *ctx;
 public:
-    explicit Scope(antlr4::Token *name) : DeclNode(Kind::SCOPE, name) {}
+    explicit Scope(SpadeParser::BlockContext *ctx, antlr4::Token *name) : DeclNode(Kind::SCOPE, name), ctx(ctx) {}
+
+    SpadeParser::BlockContext *getCtx() const { return ctx; }
 };
 
 class Interface;
@@ -81,6 +86,8 @@ public:
     vector<Interface *> &getImplements() { return implements; }
 
     void setImplements(const vector<Interface *> &implements_) { implements = implements_; }
+
+    virtual bool isSuperOf(Type *type) const;
 };
 
 class Class : public Type {
@@ -98,6 +105,7 @@ public:
     SpadeParser::ClassDeclContext *getCtx() const { return ctx; }
 
     string getSign() override;
+
 };
 
 class Interface : public Type {

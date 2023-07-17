@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "antlr4-runtime.h"
 #include "SpadeVisitor.h"
 #include "../utils/common.hpp"
@@ -8,11 +7,6 @@
 #include "ErrorListener.hpp"
 #include "../utils/format.hpp"
 #include "../utils/utils.hpp"
-
-template<typename T>
-void clear(stack<T> &st) {
-    while (!st.empty())st.pop_back();
-}
 
 /**
  * This class provides an empty implementation of SpadeVisitor, which can be
@@ -23,7 +17,7 @@ private:
     DeclTree *tree = null;
     vector<Package *> currentPackages;
     vector<Type *> currentTypes;
-    Method *currentMethod = null;
+    vector<Method *> currentMethods;
     vector<Scope *> currentScopes;
 
     ErrorListener *listener;
@@ -46,7 +40,7 @@ public:
     explicit Visitor(SpadeParser *parser, ErrorListener *listener) : listener(listener), parser(parser) {}
 
     std::any visitSep(SpadeParser::SepContext *ctx) override {
-        return visitChildren(ctx);
+        return null;
     }
 
     Type *checkType(SpadeParser::ReferenceContext *ctx) {
@@ -76,58 +70,105 @@ public:
     }
 
 
-    void checkClass(Class *klass) {
-        // Todo: check modifier combination
-        auto ctx = klass->getCtx();
-        if (ctx->parent()) {
-            Type *super = checkType(ctx->parent()->reference());
-            try { klass->setExtends(cast<Class *>(super)); }
-            catch (const CastError &) { reportError(ctx, "not a class"); }
-        }
-        for (auto parent: ctx->parentList()->parent()) {
-            Type *super = checkType(parent->reference());
-            try { klass->getImplements().push_back(cast<Interface *>(super)); }
-            catch (const CastError &) { reportError(ctx, "not an interface"); }
-        }
-        for (auto child: klass->getChildren()) traverseDeclNode(child);
+    void checkPermittedModifiers(Type *type, vector<string> modifiers) {
+        for (auto modifier: type->getModifiers())
+            for (auto modStr: modifiers)
+                if (modifier->getText() != modStr)
+                    reportError(modifier, "not permitted");
     }
 
-    void checkInterface(Interface *interface) {
-        // Todo: check modifier combination
-        auto ctx = interface->getCtx();
-        for (auto parent: ctx->parentList()->parent()) {
-            Type *super = checkType(parent->reference());
-            try { interface->getImplements().push_back(cast<Interface *>(super)); }
-            catch (const CastError &) { reportError(ctx, "not an interface"); }
+    void checkModifiers(Class *klass) {
+        auto modifiers = klass->getModifiers();
+        switch (klass->getParent()->getKind()) {
+            case DeclNode::Kind::PACKAGE:
+                checkPermittedModifiers(klass, {"public", "abstract", "final"});
+                break;
+            case DeclNode::Kind::SCOPE:
+                checkPermittedModifiers(klass, {"abstract", "final"});
+                break;
+            case DeclNode::Kind::TYPE:
+                checkPermittedModifiers(klass,
+                                        {"private", "internal", "protected", "public", "abstract", "final", "static"});
+                break;
+            case DeclNode::Kind::METHOD:
+                checkPermittedModifiers(klass, {"abstract", "final"});
+                break;
+            case DeclNode::Kind::CONSTRUCTOR:
+                checkPermittedModifiers(klass, {"abstract", "final"});
+                break;
+            default:
+                break;
         }
-        for (auto child: interface->getChildren()) traverseDeclNode(child);
     }
 
-    void checkEnum(Enum *enumClass) {
-        // Todo: check modifier combination
-        auto ctx = enumClass->getCtx();
-        for (auto parent: ctx->parentList()->parent()) {
-            Type *super = checkType(parent->reference());
-            try { enumClass->getImplements().push_back(cast<Interface *>(super)); }
-            catch (const CastError &) { reportError(ctx, "not an interface"); }
+    void checkModifiers(Interface *interface) {
+        auto modifiers = interface->getModifiers();
+        switch (interface->getParent()->getKind()) {
+            case DeclNode::Kind::PACKAGE:
+                checkPermittedModifiers(interface, {"public"});
+                break;
+            case DeclNode::Kind::SCOPE:
+                checkPermittedModifiers(interface, {""});
+                break;
+            case DeclNode::Kind::TYPE:
+                checkPermittedModifiers(interface, {"private", "internal", "protected", "public", "static"});
+                break;
+            case DeclNode::Kind::METHOD:
+                checkPermittedModifiers(interface, {""});
+                break;
+            case DeclNode::Kind::CONSTRUCTOR:
+                checkPermittedModifiers(interface, {""});
+                break;
+            default:
+                break;
         }
-        for (auto child: enumClass->getChildren()) traverseDeclNode(child);
     }
 
-    void checkAnnotation(Annotation *annotation) {
-        // Todo: check modifier combination
-        auto ctx = annotation->getCtx();
-        if (ctx->parent()) {
-            Type *super = checkType(ctx->parent()->reference());
-            try { annotation->setExtends(cast<Annotation *>(super)); }
-            catch (const CastError &) { reportError(ctx, "not an annotation"); }
+    void checkModifiers(Enum *enumClass) {
+        auto modifiers = enumClass->getModifiers();
+        switch (enumClass->getParent()->getKind()) {
+            case DeclNode::Kind::PACKAGE:
+                checkPermittedModifiers(enumClass, {"public"});
+                break;
+            case DeclNode::Kind::SCOPE:
+                checkPermittedModifiers(enumClass, {""});
+                break;
+            case DeclNode::Kind::TYPE:
+                checkPermittedModifiers(enumClass, {"private", "internal", "protected", "public", "static"});
+                break;
+            case DeclNode::Kind::METHOD:
+                checkPermittedModifiers(enumClass, {""});
+                break;
+            case DeclNode::Kind::CONSTRUCTOR:
+                checkPermittedModifiers(enumClass, {""});
+                break;
+            default:
+                break;
         }
-        for (auto parent: ctx->parentList()->parent()) {
-            Type *super = checkType(parent->reference());
-            try { annotation->getImplements().push_back(cast<Interface *>(super)); }
-            catch (const CastError &) { reportError(ctx, "not an interface"); }
+    }
+
+    void checkModifiers(Annotation *annotation) {
+        auto modifiers = annotation->getModifiers();
+        switch (annotation->getParent()->getKind()) {
+            case DeclNode::Kind::PACKAGE:
+                checkPermittedModifiers(annotation, {"public", "abstract", "final"});
+                break;
+            case DeclNode::Kind::SCOPE:
+                checkPermittedModifiers(annotation, {"abstract", "final"});
+                break;
+            case DeclNode::Kind::TYPE:
+                checkPermittedModifiers(annotation,
+                                        {"private", "internal", "protected", "public", "abstract", "final", "static"});
+                break;
+            case DeclNode::Kind::METHOD:
+                checkPermittedModifiers(annotation, {"abstract", "final"});
+                break;
+            case DeclNode::Kind::CONSTRUCTOR:
+                checkPermittedModifiers(annotation, {"abstract", "final"});
+                break;
+            default:
+                break;
         }
-        for (auto child: annotation->getChildren()) traverseDeclNode(child);
     }
 
     void checkTypeParam(TypeParam *typeParam) {
@@ -156,11 +197,11 @@ public:
 
         Type *exprType = checkExpr(valueCtx);
         auto type = any_cast<Type *>(visitName(nameCtx));
-        if(type==null&&exprType==null)reportError(nameCtx, "type of the variable cannot be inferred");
-        else if(type==null) variable->setType(exprType);
-        else if(exprType==null) variable->setType(type);
-        else{
-            if(type->isSuperOf(exprType)) variable->setType(type); // Need to get a cast
+        if (type == null && exprType == null)reportError(nameCtx, "type of the variable cannot be inferred");
+        else if (type == null) variable->setType(exprType);
+        else if (exprType == null) variable->setType(type);
+        else {
+            if (type->isSuperOf(exprType)) variable->setType(type); // Need to get a cast
             else reportError(valueCtx, "cannot be assigned");
         }
     }
@@ -170,37 +211,66 @@ public:
             case DeclNode::Kind::PACKAGE: {
                 auto package = cast<Package *>(node);
                 currentPackages.push_back(package);
-                for (auto child: package->getChildren()) traverseDeclNode(child);
+                for (auto child: package->getChildren()) {
+                    switch (child->getKind()) {
+                        case DeclNode::Kind::SCOPE:
+                            reportError(cast<Scope *>(child)->getCtx(), "not allowed as a top-level declaration");
+                            break;
+                        case DeclNode::Kind::CONSTRUCTOR:
+                            reportError(cast<Constructor *>(child)->getCtx(), "not allowed as a top-level declaration");
+                            break;
+                        case DeclNode::Kind::TYPE_PARAM:
+                            reportError(cast<TypeParam *>(child)->getCtx(), "not allowed as a top-level declaration");
+                            break;
+                        default:
+                            break;
+                    }
+                    traverseDeclNode(child);
+                }
                 currentPackages.pop_back();
                 break;
             }
             case DeclNode::Kind::SCOPE:
                 currentScopes.push_back(cast<Scope *>(node));
+                // Todo: Do something
                 currentScopes.pop_back();
                 break;
             case DeclNode::Kind::TYPE: {
                 Type *type = cast<Type *>(node);
                 currentTypes.push_back(type);
+                for (auto child: type->getChildren()) {
+                    switch (child->getKind()) {
+                        case DeclNode::Kind::SCOPE:
+                            reportError(cast<Scope *>(child)->getCtx(), "not allowed as a class-level declaration");
+                            break;
+                        default:
+                            break;
+                    }
+                }
                 switch (type->getTypeKind()) {
                     case Type::Kind::CLASS:
-                        checkClass(cast<Class *>(type));
+                        visitClassDecl(cast<Class *>(type)->getCtx());
                         break;
                     case Type::Kind::INTERFACE:
-                        checkInterface(cast<Interface *>(type));
+                        visitInterfaceDecl(cast<Interface *>(type)->getCtx());
                         break;
                     case Type::Kind::ENUM:
-                        checkEnum(cast<Enum *>(type));
+                        visitEnumDecl(cast<Enum *>(type)->getCtx());
                         break;
                     case Type::Kind::ANNOTATION:
-                        checkAnnotation(cast<Annotation *>(type));
+                        visitAnnoDecl(cast<Annotation *>(type)->getCtx());
                         break;
                 }
                 currentTypes.pop_back();
                 break;
             }
-            case DeclNode::Kind::METHOD:
-                currentMethod = cast<Method *>(node);
+            case DeclNode::Kind::METHOD: {
+                auto method = cast<Method *>(node);
+                currentMethods.push_back(method);
+                // Todo: Do something
+                currentMethods.pop_back();
                 break;
+            }
             case DeclNode::Kind::CONSTRUCTOR:
                 break;
             case DeclNode::Kind::VARIABLE:
@@ -224,7 +294,7 @@ public:
         // Reset everything
         currentPackages.clear();
         currentTypes.clear();
-        currentMethod = null;
+        currentMethods.clear();
         currentScopes.clear();
 
         checkingStarted = true;
@@ -268,18 +338,30 @@ public:
     }
 
     std::any visitEnumDecl(SpadeParser::EnumDeclContext *ctx) override {
-        auto *decl = new Enum(ctx);
-        currentTypes.push_back(decl);
+        if (!checkingStarted) {
+            auto *decl = new Enum(ctx);
+            currentTypes.push_back(decl);
 
-        for (auto member: ctx->memberDecl()) {
-            visitMemberDecl(member);
+            for (auto member: ctx->memberDecl()) {
+                visitMemberDecl(member);
+            }
+
+            currentTypes.pop_back();
+            if (!currentMethods.empty())currentScopes.back()->addChild(decl);
+            else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
+            else currentPackages.back()->addChild(decl);
+            return cast<DeclNode *>(decl);
+        } else {
+            auto enumClass = cast<Enum *>(currentTypes.back());
+            checkModifiers(enumClass);
+            for (auto parent: ctx->parentList()->parent()) {
+                Type *super = checkType(parent->reference());
+                try { enumClass->getImplements().push_back(cast<Interface *>(super)); }
+                catch (const CastError &) { reportError(ctx, "not an interface"); }
+            }
+            for (auto child: enumClass->getChildren()) traverseDeclNode(child);
+            return null;
         }
-
-        currentTypes.pop_back();
-        if (currentMethod != null)currentScopes.back()->addChild(decl);
-        else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
-        else currentPackages.back()->addChild(decl);
-        return cast<DeclNode *>(decl);
     }
 
     std::any visitEnumList(SpadeParser::EnumListContext *ctx) override {
@@ -291,51 +373,97 @@ public:
     }
 
     std::any visitAnnoDecl(SpadeParser::AnnoDeclContext *ctx) override {
-        auto *decl = new Annotation(ctx);
-        currentTypes.push_back(decl);
+        if (!checkingStarted) {
+            auto *decl = new Annotation(ctx);
+            currentTypes.push_back(decl);
 
-        visitDeclName(ctx->declName());
-        for (auto member: ctx->memberDecl()) {
-            visitMemberDecl(member);
+            visitDeclName(ctx->declName());
+            for (auto member: ctx->memberDecl()) {
+                visitMemberDecl(member);
+            }
+
+            currentTypes.pop_back();
+            if (!currentMethods.empty())currentScopes.back()->addChild(decl);
+            else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
+            else currentPackages.back()->addChild(decl);
+            return cast<DeclNode *>(decl);
+        } else {
+            auto annotation = cast<Annotation *>(currentTypes.back());
+            checkModifiers(annotation);
+            if (ctx->parent()) {
+                Type *super = checkType(ctx->parent()->reference());
+                try { annotation->setExtends(cast<Annotation *>(super)); }
+                catch (const CastError &) { reportError(ctx, "not an annotation"); }
+            }
+            for (auto parent: ctx->parentList()->parent()) {
+                Type *super = checkType(parent->reference());
+                try { annotation->getImplements().push_back(cast<Interface *>(super)); }
+                catch (const CastError &) { reportError(ctx, "not an interface"); }
+            }
+            for (auto child: annotation->getChildren()) traverseDeclNode(child);
+            return null;
         }
-
-        currentTypes.pop_back();
-        if (currentMethod != null)currentScopes.back()->addChild(decl);
-        else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
-        else currentPackages.back()->addChild(decl);
-        return cast<DeclNode *>(decl);
     }
 
     std::any visitInterfaceDecl(SpadeParser::InterfaceDeclContext *ctx) override {
-        auto *decl = new Interface(ctx);
-        currentTypes.push_back(decl);
+        if (!checkingStarted) {
+            auto *decl = new Interface(ctx);
+            currentTypes.push_back(decl);
 
-        visitDeclName(ctx->declName());
-        for (auto member: ctx->memberDecl()) {
-            visitMemberDecl(member);
+            visitDeclName(ctx->declName());
+            for (auto member: ctx->memberDecl()) {
+                visitMemberDecl(member);
+            }
+
+            currentTypes.pop_back();
+            if (!currentMethods.empty())currentScopes.back()->addChild(decl);
+            else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
+            else currentPackages.back()->addChild(decl);
+            return cast<DeclNode *>(decl);
+        } else {
+            auto interface = cast<Interface *>(currentTypes.back());
+            checkModifiers(interface);
+            for (auto parent: ctx->parentList()->parent()) {
+                Type *super = checkType(parent->reference());
+                try { interface->getImplements().push_back(cast<Interface *>(super)); }
+                catch (const CastError &) { reportError(ctx, "not an interface"); }
+            }
+            for (auto child: interface->getChildren()) traverseDeclNode(child);
+            return null;
         }
-
-        currentTypes.pop_back();
-        if (currentMethod != null)currentScopes.back()->addChild(decl);
-        else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
-        else currentPackages.back()->addChild(decl);
-        return cast<DeclNode *>(decl);
     }
 
     std::any visitClassDecl(SpadeParser::ClassDeclContext *ctx) override {
-        auto *decl = new Class(ctx);
-        currentTypes.push_back(decl);
+        if (!checkingStarted) {
+            auto *decl = new Class(ctx);
+            currentTypes.push_back(decl);
 
-        visitDeclName(ctx->declName());
-        for (auto member: ctx->memberDecl()) {
-            visitMemberDecl(member);
+            visitDeclName(ctx->declName());
+            for (auto member: ctx->memberDecl()) {
+                visitMemberDecl(member);
+            }
+
+            currentTypes.pop_back();
+            if (!currentMethods.empty())currentScopes.back()->addChild(decl);
+            else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
+            else currentPackages.back()->addChild(decl);
+            return cast<DeclNode *>(decl);
+        } else {
+            auto klass = cast<Class *>(currentTypes.back());
+            checkModifiers(klass);
+            if (ctx->parent()) {
+                Type *super = checkType(ctx->parent()->reference());
+                try { klass->setExtends(cast<Class *>(super)); }
+                catch (const CastError &) { reportError(ctx, "not a class"); }
+            }
+            for (auto parent: ctx->parentList()->parent()) {
+                Type *super = checkType(parent->reference());
+                try { klass->getImplements().push_back(cast<Interface *>(super)); }
+                catch (const CastError &) { reportError(ctx, "not an interface"); }
+            }
+            for (auto child: klass->getChildren()) traverseDeclNode(child);
+            return null;
         }
-
-        currentTypes.pop_back();
-        if (currentMethod != null)currentScopes.back()->addChild(decl);
-        else if (currentTypes.back() != null)currentTypes.back()->addChild(decl);
-        else currentPackages.back()->addChild(decl);
-        return cast<DeclNode *>(decl);
     }
 
     std::any visitParentList(SpadeParser::ParentListContext *ctx) override {
@@ -448,10 +576,10 @@ public:
 
     std::any visitVarDecl(SpadeParser::VarDeclContext *ctx) override {
         auto decl = new Variable(ctx->name(), ctx->expr(),
-                                 ctx->CONST() == null, currentMethod == null
+                                 ctx->CONST() == null, !currentMethods.empty()
                                                        ? Variable::VarKind::LOCAL
                                                        : Variable::VarKind::GLOBAL);
-        if (currentMethod != null)currentScopes.back()->addChild(decl);
+        if (!currentMethods.empty())currentScopes.back()->addChild(decl);
         else currentPackages.back()->addChild(decl);
         return decl;
     }

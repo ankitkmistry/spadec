@@ -273,7 +273,7 @@ objectBuilder
 items
 entries
 entry
-kind
+type
 typeArgs
 typeArg
 paramTypes
