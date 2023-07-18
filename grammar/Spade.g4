@@ -50,7 +50,15 @@ memberDecl: modifiers (
            ) sep;
 
 fieldDecl: CONST? name ('=' expr)?;
-methodDecl: IDENTIFIER '(' params? ')' ('->' type)? definition?;
+methodDecl: (IDENTIFIER | 'operator' op=operators | 'as' type) '(' params? ')' ('->' type)? definition?;
+operators: '!' | '-' | '~' | '+'
+         | '??'
+         | '**' | '*' | '/' | '%'
+         | '<<' | '>>>' | '>>'
+         | '<' | '<=' | '==' | '!=' | '>=' | '>'
+         | '&' | '^' | '|'
+         | 'is' 'not'? | 'not'? 'in'
+         | 'not' | 'and' | 'or';
 constructorDecl: INIT '(' params? ')' definition?;
 
 modifiers: (ABSTRACT | FINAL | STATIC | INLINE | accessors)*;
@@ -107,18 +115,18 @@ else: ELSE body;
 
 // Expression
 expr
-    : ('!'|'~'|'-'|'+')? postfix                            # unaryExpr
+    : op=(BANG|TILDE|DASH|PLUS)? postfix                            # unaryExpr
     | expr '??' expr                                        # elvisExpr
-    | expr AS '?'? type                                   # castExpr
+    | expr AS safe='?'? type                                   # castExpr
     | <assoc=right> expr '**' expr                          # powerExpr
-    | expr ('*'|'/'|'%') expr                               # factorExpr
-    | expr ('+'|'-') expr                                   # termExpr
+    | expr op=(STAR|SLASH|MODULUS) expr                               # factorExpr
+    | expr op=(PLUS|DASH) expr                                   # termExpr
     | expr ('<''<'|'>''>'|'>''>''>') expr                   # shiftExpr
     | expr '&' expr                                         # bitAndExpr
     | expr '^' expr                                         # bitXorExpr
     | expr '|' expr                                         # bitOrExpr
-    | expr ('<'|'<='|'=='|'!='|'>='|'>') expr               # relationalExpr
-    | expr (IS NOT?|NOT? IN) expr                   # conditonalExpr
+    | expr op=(LT|LE|EQ|NE|GE|GT) expr               # relationalExpr
+    | expr (IS NOT?|NOT? IN) expr                   # conditionalExpr
     | NOT expr                                            # notExpr
     | expr AND expr                                       # andExpr
     | expr OR expr                                        # orExpr
@@ -132,7 +140,7 @@ assignee: postfix | destructDecl;
 assignOperator: '='|'+='|'-='|'*='|'/='|'%='|'**='|'<<='|'>>='|'>>>='|'&='|'|='|'^='|'??=';
 
 // Postfix expression
-postfix: primary                   # postFixPrimary
+postfix: primary                   # postfixPrimary
     | postfix '?'? '.' IDENTIFIER  # postfixDot
     | postfix '<' typeArgs '>'    # postfixGeneric
     | postfix '(' args? ')'        # postfixCall
@@ -150,7 +158,7 @@ slice: expr
 // Primary expressions
 primary: constant                       # constantExpr
        | objectBuilder                 # builderExpr
-       | SUPER '[' IDENTIFIER ']'     # superExpr
+       | SUPER ('[' reference ']')?     # superExpr
        | THIS                         # thisExpr
        | '(' (expr)  ')'                # groupExpr
        | '(' items? ')'                 # tupleExpr
@@ -163,7 +171,7 @@ primary: constant                       # constantExpr
 constant: TRUE | FALSE | NULL | literal;
 literal: INTEGER | FLOAT | STRING | IDENTIFIER;
 
-objectBuilder: OBJECT (':' type)? '{' /*member**/ '}';
+objectBuilder: OBJECT (':' type)? '{' memberDecl* '}';
 
 items: expr (',' expr)* ','?;
 
@@ -238,6 +246,19 @@ BREAK: 'break';
 RETURN: 'return';
 YIELD: 'yield';
 // Operators
+GT : '>' ;
+GE : '>=' ;
+NE : '!=' ;
+EQ : '==' ;
+LE : '<=' ;
+LT : '<' ;
+MODULUS : '%' ;
+SLASH : '/' ;
+STAR : '*' ;
+PLUS : '+' ;
+DASH : '-' ;
+TILDE : '~' ;
+BANG : '!' ;
 AS: 'as';
 IS: 'is';
 NOT: 'not';

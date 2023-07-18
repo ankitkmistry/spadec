@@ -7,6 +7,7 @@
 #include "ErrorListener.hpp"
 #include "../utils/format.hpp"
 #include "../utils/utils.hpp"
+#include "SpadeLexer.h"
 
 /**
  * This class provides an empty implementation of SpadeVisitor, which can be
@@ -70,16 +71,31 @@ public:
     }
 
 
-    void checkPermittedModifiers(Type *type, vector<string> modifiers) {
-        for (auto modifier: type->getModifiers())
+    void checkPermittedModifiers(DeclNode *node, vector<string> modifiers) {
+        std::set<string> modStrs;
+        for (auto modifier: node->getModifiers())
             for (auto modStr: modifiers)
                 if (modifier->getText() != modStr)
                     reportError(modifier, "not permitted");
+                else modStrs.insert(modStr);
+
+        if (modStrs.find("private") != modStrs.end()) {
+            if (modStrs.find("abstract") != modStrs.end())
+                reportError(DeclNode::getCtx(node), "private object cannot be abstract");
+            else if (modStrs.find("final") != modStrs.end())
+                reportError(DeclNode::getCtx(node), "private object cannot be final");
+        } else if (modStrs.find("abstract") != modStrs.end()) {
+            if (modStrs.find("final") != modStrs.end())
+                reportError(DeclNode::getCtx(node), "abstract object cannot be final");
+            else if (modStrs.find("static") != modStrs.end())
+                reportError(DeclNode::getCtx(node), "abstract object cannot be static");
+        }
     }
 
     void checkModifiers(Class *klass) {
         auto modifiers = klass->getModifiers();
-        switch (klass->getParent()->getKind()) {
+        auto parent = klass->getParent();
+        switch (parent->getKind()) {
             case DeclNode::Kind::PACKAGE:
                 checkPermittedModifiers(klass, {"public", "abstract", "final"});
                 break;
@@ -87,14 +103,24 @@ public:
                 checkPermittedModifiers(klass, {"abstract", "final"});
                 break;
             case DeclNode::Kind::TYPE:
-                checkPermittedModifiers(klass,
-                                        {"private", "internal", "protected", "public", "abstract", "final", "static"});
-                break;
-            case DeclNode::Kind::METHOD:
-                checkPermittedModifiers(klass, {"abstract", "final"});
-                break;
-            case DeclNode::Kind::CONSTRUCTOR:
-                checkPermittedModifiers(klass, {"abstract", "final"});
+                switch (cast<Type *>(parent)->getTypeKind()) {
+                    case Type::Kind::CLASS:
+                        checkPermittedModifiers(klass,
+                                                {"private", "internal", "protected", "public", "abstract", "final",
+                                                 "static"});
+                        break;
+                    case Type::Kind::INTERFACE:
+                        checkPermittedModifiers(klass, {""});
+                        break;
+                    case Type::Kind::ENUM:
+                        checkPermittedModifiers(klass, {""});
+                        break;
+                    case Type::Kind::ANNOTATION:
+                        checkPermittedModifiers(klass,
+                                                {"private", "internal", "protected", "public", "abstract", "final",
+                                                 "static"});
+                        break;
+                }
                 break;
             default:
                 break;
@@ -103,7 +129,8 @@ public:
 
     void checkModifiers(Interface *interface) {
         auto modifiers = interface->getModifiers();
-        switch (interface->getParent()->getKind()) {
+        auto parent = interface->getParent();
+        switch (parent->getKind()) {
             case DeclNode::Kind::PACKAGE:
                 checkPermittedModifiers(interface, {"public"});
                 break;
@@ -111,13 +138,22 @@ public:
                 checkPermittedModifiers(interface, {""});
                 break;
             case DeclNode::Kind::TYPE:
-                checkPermittedModifiers(interface, {"private", "internal", "protected", "public", "static"});
-                break;
-            case DeclNode::Kind::METHOD:
-                checkPermittedModifiers(interface, {""});
-                break;
-            case DeclNode::Kind::CONSTRUCTOR:
-                checkPermittedModifiers(interface, {""});
+                switch (cast<Type *>(parent)->getTypeKind()) {
+                    case Type::Kind::CLASS:
+                        checkPermittedModifiers(interface,
+                                                {"private", "internal", "protected", "public", "static"});
+                        break;
+                    case Type::Kind::INTERFACE:
+                        checkPermittedModifiers(interface, {""});
+                        break;
+                    case Type::Kind::ENUM:
+                        checkPermittedModifiers(interface, {""});
+                        break;
+                    case Type::Kind::ANNOTATION:
+                        checkPermittedModifiers(interface,
+                                                {"private", "internal", "protected", "public", "static"});
+                        break;
+                }
                 break;
             default:
                 break;
@@ -126,7 +162,8 @@ public:
 
     void checkModifiers(Enum *enumClass) {
         auto modifiers = enumClass->getModifiers();
-        switch (enumClass->getParent()->getKind()) {
+        auto parent = enumClass->getParent();
+        switch (parent->getKind()) {
             case DeclNode::Kind::PACKAGE:
                 checkPermittedModifiers(enumClass, {"public"});
                 break;
@@ -134,13 +171,22 @@ public:
                 checkPermittedModifiers(enumClass, {""});
                 break;
             case DeclNode::Kind::TYPE:
-                checkPermittedModifiers(enumClass, {"private", "internal", "protected", "public", "static"});
-                break;
-            case DeclNode::Kind::METHOD:
-                checkPermittedModifiers(enumClass, {""});
-                break;
-            case DeclNode::Kind::CONSTRUCTOR:
-                checkPermittedModifiers(enumClass, {""});
+                switch (cast<Type *>(parent)->getTypeKind()) {
+                    case Type::Kind::CLASS:
+                        checkPermittedModifiers(enumClass,
+                                                {"private", "internal", "protected", "public", "static"});
+                        break;
+                    case Type::Kind::INTERFACE:
+                        checkPermittedModifiers(enumClass, {""});
+                        break;
+                    case Type::Kind::ENUM:
+                        checkPermittedModifiers(enumClass, {""});
+                        break;
+                    case Type::Kind::ANNOTATION:
+                        checkPermittedModifiers(enumClass,
+                                                {"private", "internal", "protected", "public", "static"});
+                        break;
+                }
                 break;
             default:
                 break;
@@ -149,7 +195,8 @@ public:
 
     void checkModifiers(Annotation *annotation) {
         auto modifiers = annotation->getModifiers();
-        switch (annotation->getParent()->getKind()) {
+        auto parent = annotation->getParent();
+        switch (parent->getKind()) {
             case DeclNode::Kind::PACKAGE:
                 checkPermittedModifiers(annotation, {"public", "abstract", "final"});
                 break;
@@ -157,14 +204,57 @@ public:
                 checkPermittedModifiers(annotation, {"abstract", "final"});
                 break;
             case DeclNode::Kind::TYPE:
-                checkPermittedModifiers(annotation,
-                                        {"private", "internal", "protected", "public", "abstract", "final", "static"});
+                switch (cast<Type *>(parent)->getTypeKind()) {
+                    case Type::Kind::CLASS:
+                        checkPermittedModifiers(annotation,
+                                                {"private", "internal", "protected", "public", "abstract", "final",
+                                                 "static"});
+                        break;
+                    case Type::Kind::INTERFACE:
+                        checkPermittedModifiers(annotation, {""});
+                        break;
+                    case Type::Kind::ENUM:
+                        checkPermittedModifiers(annotation, {""});
+                        break;
+                    case Type::Kind::ANNOTATION:
+                        checkPermittedModifiers(annotation,
+                                                {"private", "internal", "protected", "public", "abstract", "final",
+                                                 "static"});
+                        break;
+                }
                 break;
-            case DeclNode::Kind::METHOD:
-                checkPermittedModifiers(annotation, {"abstract", "final"});
+            default:
                 break;
-            case DeclNode::Kind::CONSTRUCTOR:
-                checkPermittedModifiers(annotation, {"abstract", "final"});
+        }
+    }
+
+    void checkModifiers(Variable *variable) {
+        auto modifiers = variable->getModifiers();
+        auto parent = variable->getParent();
+        switch (parent->getKind()) {
+            case DeclNode::Kind::PACKAGE:
+                checkPermittedModifiers(variable, {"public", "final"});
+                break;
+            case DeclNode::Kind::SCOPE:
+                checkPermittedModifiers(variable, {"final"});
+                break;
+            case DeclNode::Kind::TYPE:
+                switch (cast<Type *>(parent)->getTypeKind()) {
+                    case Type::Kind::CLASS:
+                        checkPermittedModifiers(variable,
+                                                {"private", "internal", "protected", "public", "final", "static"});
+                        break;
+                    case Type::Kind::INTERFACE:
+                        checkPermittedModifiers(variable, {""});
+                        break;
+                    case Type::Kind::ENUM:
+                        checkPermittedModifiers(variable, {""});
+                        break;
+                    case Type::Kind::ANNOTATION:
+                        checkPermittedModifiers(variable,
+                                                {"private", "internal", "protected", "public", "static"});
+                        break;
+                }
                 break;
             default:
                 break;
@@ -192,6 +282,7 @@ public:
     }
 
     void checkVariable(Variable *variable) {
+        checkModifiers(variable);
         auto nameCtx = variable->getNameCtx();
         auto valueCtx = variable->getExprCtx();
 
@@ -211,42 +302,20 @@ public:
             case DeclNode::Kind::PACKAGE: {
                 auto package = cast<Package *>(node);
                 currentPackages.push_back(package);
-                for (auto child: package->getChildren()) {
-                    switch (child->getKind()) {
-                        case DeclNode::Kind::SCOPE:
-                            reportError(cast<Scope *>(child)->getCtx(), "not allowed as a top-level declaration");
-                            break;
-                        case DeclNode::Kind::CONSTRUCTOR:
-                            reportError(cast<Constructor *>(child)->getCtx(), "not allowed as a top-level declaration");
-                            break;
-                        case DeclNode::Kind::TYPE_PARAM:
-                            reportError(cast<TypeParam *>(child)->getCtx(), "not allowed as a top-level declaration");
-                            break;
-                        default:
-                            break;
-                    }
-                    traverseDeclNode(child);
-                }
+                for (auto child: package->getChildren()) traverseDeclNode(child);
                 currentPackages.pop_back();
                 break;
             }
-            case DeclNode::Kind::SCOPE:
-                currentScopes.push_back(cast<Scope *>(node));
-                // Todo: Do something
+            case DeclNode::Kind::SCOPE: {
+                auto scope = cast<Scope *>(node);
+                currentScopes.push_back(scope);
+                visitBlock(scope->getCtx());
                 currentScopes.pop_back();
                 break;
+            }
             case DeclNode::Kind::TYPE: {
                 Type *type = cast<Type *>(node);
                 currentTypes.push_back(type);
-                for (auto child: type->getChildren()) {
-                    switch (child->getKind()) {
-                        case DeclNode::Kind::SCOPE:
-                            reportError(cast<Scope *>(child)->getCtx(), "not allowed as a class-level declaration");
-                            break;
-                        default:
-                            break;
-                    }
-                }
                 switch (type->getTypeKind()) {
                     case Type::Kind::CLASS:
                         visitClassDecl(cast<Class *>(type)->getCtx());
@@ -282,6 +351,105 @@ public:
         }
     }
 
+    void checkNodePurity(DeclNode *node) {
+        switch (node->getKind()) {
+            case DeclNode::Kind::PACKAGE: {
+                auto package = cast<Package *>(node);
+                for (auto child: package->getChildren()) {
+                    switch (child->getKind()) {
+                        case DeclNode::Kind::SCOPE:
+                            reportError(cast<Scope *>(child)->getCtx(), "not allowed as a top-level declaration");
+                            break;
+                        case DeclNode::Kind::CONSTRUCTOR:
+                            reportError(cast<Constructor *>(child)->getCtx(), "not allowed as a top-level declaration");
+                            break;
+                        case DeclNode::Kind::TYPE_PARAM:
+                            reportError(cast<TypeParam *>(child)->getCtx(), "not allowed as a top-level declaration");
+                            break;
+                        default:
+                            break;
+                    }
+                    checkNodePurity(child);
+                }
+                break;
+            }
+            case DeclNode::Kind::SCOPE: {
+                auto scope = cast<Scope *>(node);
+                for (auto child: scope->getChildren()) checkNodePurity(child);
+                break;
+            }
+            case DeclNode::Kind::TYPE: {
+                Type *type = cast<Type *>(node);
+                switch (type->getTypeKind()) {
+                    case Type::Kind::INTERFACE:
+                        for (auto child: type->getChildren()) {
+                            switch (child->getKind()) {
+                                case DeclNode::Kind::TYPE:
+                                    reportError(DeclNode::getCtx(child), "not allowed in an interface declaration");
+                                    break;
+                                case DeclNode::Kind::CONSTRUCTOR:
+                                    reportError(DeclNode::getCtx(child),
+                                                "constructor not allowed in an interface declaration");
+                                    break;
+                                case DeclNode::Kind::VARIABLE:
+                                    if (child->getModifiers().size() != 3)
+                                        reportError(DeclNode::getCtx(child),
+                                                    "only public static final fields are allowed in an interface declaration");
+                                    else
+                                        for (auto modifier: child->getModifiers()) {
+                                            if (modifier->getText() != "public" || modifier->getText() != "static" ||
+                                                modifier->getText() != "final")
+                                                reportError(DeclNode::getCtx(child),
+                                                            "only public static final fields are allowed in an interface declaration");
+                                        }
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        break;
+                    case Type::Kind::ENUM:
+                        for (auto child: type->getChildren()) {
+                            switch (child->getKind()) {
+                                case DeclNode::Kind::TYPE:
+                                    reportError(DeclNode::getCtx(child), "not allowed in an enum declaration");
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                for (auto child: type->getChildren()) {
+                    switch (child->getKind()) {
+                        case DeclNode::Kind::SCOPE:
+                            reportError(cast<Scope *>(child)->getCtx(),
+                                        "scope not allowed in a class-level declaration");
+                            break;
+                        default:
+                            break;
+                    }
+                    checkNodePurity(child);
+                }
+                break;
+            }
+            case DeclNode::Kind::METHOD: {
+                auto method = cast<Method *>(node);
+                for (auto child: method->getChildren()) checkNodePurity(child);
+                break;
+            }
+            case DeclNode::Kind::CONSTRUCTOR: {
+                auto constructor = cast<Constructor *>(node);
+                for (auto child: constructor->getChildren()) checkNodePurity(child);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
     std::any visitCompilationUnit(SpadeParser::CompilationUnitContext *ctx) override {
         if (ctx->packageStmt() == null) {
             currentPackages.push_back(new Package(null));
@@ -296,6 +464,8 @@ public:
         currentTypes.clear();
         currentMethods.clear();
         currentScopes.clear();
+
+        checkNodePurity(tree->getRoot());
 
         checkingStarted = true;
         traverseDeclNode(tree->getRoot());
@@ -680,31 +850,45 @@ public:
         return visitChildren(ctx);
     }
 
-    std::any visitPowerExpr(SpadeParser::PowerExprContext *ctx) override {
-        return visitChildren(ctx);
+    std::any visitExpr(SpadeParser::ExprContext *ctx) {
+#define DIRECT(type) else if (is<SpadeParser:: type##ExprContext *>(ctx))\
+        return visit##type##Expr(cast<SpadeParser:: type##ExprContext *>(ctx))
+        if (is<SpadeParser::UnaryExprContext *>(ctx))
+            return visitUnaryExpr(cast<SpadeParser::UnaryExprContext *>(ctx));
+        DIRECT(Elvis);
+        DIRECT(Cast);
+        DIRECT(Power);
+        DIRECT(Factor);
+        DIRECT(Term);
+        DIRECT(Shift);
+        DIRECT(BitAnd);
+        DIRECT(BitXor);
+        DIRECT(BitOr);
+        DIRECT(Relational);
+        DIRECT(Conditional);
+        DIRECT(Not);
+        DIRECT(And);
+        DIRECT(Or);
+        DIRECT(Ternary);
+        DIRECT(Lambda);
+        DIRECT(Assign);
+        return null;
+#undef DIRECT
     }
 
-    std::any visitCastExpr(SpadeParser::CastExprContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    std::any visitTermExpr(SpadeParser::TermExprContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    std::any visitConditonalExpr(SpadeParser::ConditonalExprContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    std::any visitOrExpr(SpadeParser::OrExprContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    std::any visitRelationalExpr(SpadeParser::RelationalExprContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    std::any visitFactorExpr(SpadeParser::FactorExprContext *ctx) override {
+    std::any visitUnaryExpr(SpadeParser::UnaryExprContext *ctx) override {
+        switch (ctx->op->getType()) {
+            case SpadeLexer::BANG:
+                break;
+            case SpadeLexer::TILDE:
+                break;
+            case SpadeLexer::DASH:
+                break;
+            case SpadeLexer::PLUS:
+                break;
+            default:
+                return visitPostfix(/*dont know*/)
+        }
         return visitChildren(ctx);
     }
 
@@ -712,7 +896,19 @@ public:
         return visitChildren(ctx);
     }
 
-    std::any visitBitXorExpr(SpadeParser::BitXorExprContext *ctx) override {
+    std::any visitCastExpr(SpadeParser::CastExprContext *ctx) override {
+        return visitChildren(ctx);
+    }
+
+    std::any visitPowerExpr(SpadeParser::PowerExprContext *ctx) override {
+        return visitChildren(ctx);
+    }
+
+    std::any visitFactorExpr(SpadeParser::FactorExprContext *ctx) override {
+        return visitChildren(ctx);
+    }
+
+    std::any visitTermExpr(SpadeParser::TermExprContext *ctx) override {
         return visitChildren(ctx);
     }
 
@@ -720,15 +916,35 @@ public:
         return visitChildren(ctx);
     }
 
+    std::any visitBitAndExpr(SpadeParser::BitAndExprContext *ctx) override {
+        return visitChildren(ctx);
+    }
+
+    std::any visitBitXorExpr(SpadeParser::BitXorExprContext *ctx) override {
+        return visitChildren(ctx);
+    }
+
     std::any visitBitOrExpr(SpadeParser::BitOrExprContext *ctx) override {
         return visitChildren(ctx);
     }
 
-    std::any visitUnaryExpr(SpadeParser::UnaryExprContext *ctx) override {
+    std::any visitRelationalExpr(SpadeParser::RelationalExprContext *ctx) override {
+        return visitChildren(ctx);
+    }
+
+    std::any visitConditionalExpr(SpadeParser::ConditionalExprContext *ctx) override {
         return visitChildren(ctx);
     }
 
     std::any visitNotExpr(SpadeParser::NotExprContext *ctx) override {
+        return visitChildren(ctx);
+    }
+
+    std::any visitAndExpr(SpadeParser::AndExprContext *ctx) override {
+        return visitChildren(ctx);
+    }
+
+    std::any visitOrExpr(SpadeParser::OrExprContext *ctx) override {
         return visitChildren(ctx);
     }
 
@@ -740,15 +956,7 @@ public:
         return visitChildren(ctx);
     }
 
-    std::any visitBitAndExpr(SpadeParser::BitAndExprContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
     std::any visitAssignExpr(SpadeParser::AssignExprContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    std::any visitAndExpr(SpadeParser::AndExprContext *ctx) override {
         return visitChildren(ctx);
     }
 
@@ -764,27 +972,97 @@ public:
         return visitChildren(ctx);
     }
 
+    std::any visitPrimary(SpadeParser::PrimaryContext *ctx) {
+#define DIRECT(type) else if (is<SpadeParser:: type##ExprContext *>(ctx))\
+        return visit##type##Expr(cast<SpadeParser:: type##ExprContext *>(ctx))
+        if (is<SpadeParser::ConstantExprContext *>(ctx))
+            return visitConstantExpr(cast<SpadeParser::ConstantExprContext *>(ctx));
+        DIRECT(Builder);
+        DIRECT(Super);
+        DIRECT(This);
+        DIRECT(Group);
+        DIRECT(Tuple);
+        DIRECT(Set);
+        DIRECT(Map);
+        DIRECT(List);
+        DIRECT(Type);
+        return null;
+#undef DIRECT
+    }
+
+    std::any visitPostfix(SpadeParser::PostfixContext *ctx) {
+#define DIRECT(type) else if (is<SpadeParser::Postfix##type##Context *>(ctx))\
+        return visitPostfix##type (cast<SpadeParser::Postfix##type##Context *>(ctx))
+        if (is<SpadeParser::PostfixPrimaryContext *>(ctx))
+            return visitPostfixPrimary(cast<SpadeParser::PostfixPrimaryContext *>(ctx));
+        DIRECT(Dot);
+        DIRECT(Generic);
+        DIRECT(Call);
+        DIRECT(Indexer);
+        DIRECT(Block);
+        return null;
+#undef DIRECT
+    }
+
+    vector<DeclNode *> getAccessibleMembers(vector<DeclNode *> nodes) {
+        auto type = currentTypes.back();
+        auto package = currentPackages.back();
+        vector<DeclNode *> members;
+        for (auto node: nodes) {
+            auto accessibility = node->getAccessibility();
+            switch (node->getAccessibility()) {
+                case DeclNode::Accessor::PRIVATE:
+                    if (type == node->getParent())members.push_back(node);
+                    break;
+                case DeclNode::Accessor::INTERNAL:
+                    if (type->isSuperOf(cast<Type *>(node->getParent())) && package == node->getPackage())
+                        members.push_back(node);
+                    break;
+                case DeclNode::Accessor::PACKAGE_PRIVATE:
+                    if (package == node->getPackage())members.push_back(node);
+                    break;
+                case DeclNode::Accessor::PROTECTED:
+                    if (package == node->getPackage() || type->isSuperOf(cast<Type *>(node->getParent())))
+                        members.push_back(node);
+                    break;
+                case DeclNode::Accessor::PUBLIC:
+                    members.push_back(node);
+                    break;
+            }
+        }
+        return members;
+    }
+
+    std::any visitPostfixPrimary(SpadeParser::PostfixPrimaryContext *ctx) override {
+        return vector<DeclNode *>{any_cast<DeclNode *>(visitPrimary(ctx->primary()))};
+    }
+
     std::any visitPostfixDot(SpadeParser::PostfixDotContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    std::any visitPostFixPrimary(SpadeParser::PostFixPrimaryContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    std::any visitPostfixBlock(SpadeParser::PostfixBlockContext *ctx) override {
-        return visitChildren(ctx);
+        auto node = any_cast<DeclNode *>(visitPostfix(ctx->postfix()));
+        auto members = node->getMembers(ctx->IDENTIFIER()->getText());
+        if (members.empty())reportError(ctx, "cannot be referenced");
+        members = getAccessibleMembers(members);
+        if (members.empty())reportError(ctx, "not accessible");
+        return members;
     }
 
     std::any visitPostfixGeneric(SpadeParser::PostfixGenericContext *ctx) override {
+        auto type = any_cast<Type *>(visitPostfix(ctx->postfix()));
         return visitChildren(ctx);
     }
 
     std::any visitPostfixCall(SpadeParser::PostfixCallContext *ctx) override {
+        auto type = any_cast<Type *>(visitPostfix(ctx->postfix()));
         return visitChildren(ctx);
     }
 
     std::any visitPostfixIndexer(SpadeParser::PostfixIndexerContext *ctx) override {
+        auto type = any_cast<Type *>(visitPostfix(ctx->postfix()));
+        return visitChildren(ctx);
+    }
+
+    std::any visitPostfixBlock(SpadeParser::PostfixBlockContext *ctx) override {
+        auto type = any_cast<Type *>(visitPostfix(ctx->postfix()));
         return visitChildren(ctx);
     }
 
@@ -805,7 +1083,7 @@ public:
     }
 
     std::any visitConstantExpr(SpadeParser::ConstantExprContext *ctx) override {
-        return visitChildren(ctx);
+        return visitConstant(ctx->constant());
     }
 
     std::any visitBuilderExpr(SpadeParser::BuilderExprContext *ctx) override {
@@ -813,43 +1091,116 @@ public:
     }
 
     std::any visitSuperExpr(SpadeParser::SuperExprContext *ctx) override {
-        return visitChildren(ctx);
+        if (currentTypes.empty()) reportError(ctx, "'super' expression must be used inside a class");
+        auto type = currentTypes.back();
+        auto superTypes = Type::getSuperTypes(type);
+        switch (type->getTypeKind()) {
+            case Type::Kind::CLASS:
+                if (ctx->reference() != null) {
+                    auto referredType = checkType(ctx->reference());
+                    if (std::find(superTypes.begin(), superTypes.end(), referredType) != superTypes.end())
+                        reportError(ctx->reference(), format("not a super-class of %s", type->getSign().c_str()));
+                    else return referredType;
+                } else return cast<Class *>(type)->getExtends();
+                break;
+            case Type::Kind::ANNOTATION:
+                if (ctx->reference() != null) {
+                    auto referredType = checkType(ctx->reference());
+                    if (std::find(superTypes.begin(), superTypes.end(), referredType) != superTypes.end())
+                        reportError(ctx->reference(), format("not a super-class of %s", type->getSign().c_str()));
+                    else return referredType;
+                } else return cast<Annotation *>(type)->getExtends();
+                break;
+            case Type::Kind::INTERFACE:
+                if (ctx->reference() != null) {
+                    auto referredType = checkType(ctx->reference());
+                    if (std::find(superTypes.begin(), superTypes.end(), referredType) != superTypes.end())
+                        reportError(ctx->reference(), format("not a super-interface of %s", type->getSign().c_str()));
+                    else return referredType;
+                } else {
+                    if (superTypes.size() == 1)return superTypes[0];
+                    else reportError(ctx, "cannot be determined which super-interface to infer");
+                }
+                break;
+            case Type::Kind::ENUM:
+                if (ctx->reference() != null) {
+                    auto referredType = checkType(ctx->reference());
+                    if (std::find(superTypes.begin(), superTypes.end(), referredType) != superTypes.end())
+                        reportError(ctx->reference(), format("not a super-interface of %s", type->getSign().c_str()));
+                    else return referredType;
+                } else {
+                    if (superTypes.size() == 1)return superTypes[0];
+                    else reportError(ctx, "cannot be determined which super-interface to infer");
+                }
+                break;
+        }
+        return null;
     }
 
     std::any visitThisExpr(SpadeParser::ThisExprContext *ctx) override {
-        return visitChildren(ctx);
+        if (currentTypes.empty()) reportError(ctx, "'this' expression must be used inside a class");
+        return currentTypes.back();
     }
 
     std::any visitGroupExpr(SpadeParser::GroupExprContext *ctx) override {
-        return visitChildren(ctx);
+        return visitExpr(ctx->expr());
     }
 
     std::any visitTupleExpr(SpadeParser::TupleExprContext *ctx) override {
-        return visitChildren(ctx);
+        if (ctx->items() != null)return visitItems(ctx->items());
+        return null;
     }
 
     std::any visitSetExpr(SpadeParser::SetExprContext *ctx) override {
-        return visitChildren(ctx);
+        return visitItems(ctx->items());
     }
 
     std::any visitMapExpr(SpadeParser::MapExprContext *ctx) override {
-        return visitChildren(ctx);
+        if (ctx->entries() != null)return visitEntries(ctx->entries());
+        return null;
     }
 
     std::any visitListExpr(SpadeParser::ListExprContext *ctx) override {
-        return visitChildren(ctx);
+        if (ctx->items() != null)return visitItems(ctx->items());
+        return null;
     }
 
     std::any visitTypeExpr(SpadeParser::TypeExprContext *ctx) override {
-        return visitChildren(ctx);
+        // todo This does not return the type of the type expression
+        return checkType(ctx->type());
     }
 
     std::any visitConstant(SpadeParser::ConstantContext *ctx) override {
-        return visitChildren(ctx);
+        if (ctx->TRUE() != null || ctx->FALSE() != null)return Type::BOOL;
+        else if (ctx->NULL_() != null)return Type::NULL_TYPE;
+        else if (ctx->literal() != null)return visitLiteral(ctx->literal());
+        return null;
+    }
+
+    DeclNode *getCurrentNode() {
+        DeclNode *currentNode = null;
+        if (!currentScopes.empty())currentNode = currentScopes.back();
+        else if (!currentMethods.empty())currentNode = currentMethods.back();
+        else if (!currentTypes.empty())currentNode = currentTypes.back();
+        else if (!currentPackages.empty())currentNode = currentPackages.back();
+        return currentNode;
     }
 
     std::any visitLiteral(SpadeParser::LiteralContext *ctx) override {
-        return visitChildren(ctx);
+        if (ctx->INTEGER() != null)return Type::INT;
+        else if (ctx->FLOAT() != null)return Type::FLOAT;
+        else if (ctx->STRING() != null)return Type::STRING;
+        else if (ctx->IDENTIFIER() != null) {
+            auto name = ctx->IDENTIFIER()->getText();
+            for (DeclNode *node = getCurrentNode(); node != null; node = node->getParent()) {
+                auto members = node->getMembers(name);
+                if (members.empty())continue;
+                auto member = members[0];
+                // todo add type support
+                if (is<Variable *>(member))return cast<Variable *>(member)->getType();
+            }
+        }
+        return null;
     }
 
     std::any visitObjectBuilder(SpadeParser::ObjectBuilderContext *ctx) override {

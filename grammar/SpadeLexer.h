@@ -17,19 +17,19 @@ public:
     T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
     T__20 = 21, T__21 = 22, T__22 = 23, T__23 = 24, T__24 = 25, T__25 = 26, 
     T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
-    T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, T__37 = 38, 
-    T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
-    T__44 = 45, T__45 = 46, PACKAGE = 47, IMPORT = 48, EXPORT = 49, EXTENDS = 50, 
-    IMPLEMENTS = 51, ENUM = 52, CLASS = 53, INTERFACE = 54, ANNOTATION = 55, 
-    INIT = 56, FUN = 57, CONST = 58, VAR = 59, ABSTRACT = 60, FINAL = 61, 
-    STATIC = 62, INLINE = 63, PRIVATE = 64, PROTECTED = 65, INTERNAL = 66, 
-    PUBLIC = 67, IF = 68, ELSE = 69, WHILE = 70, DO = 71, FOR = 72, IN = 73, 
-    MATCH = 74, WHEN = 75, THROW = 76, TRY = 77, CATCH = 78, FINALLY = 79, 
-    CONTINUE = 80, BREAK = 81, RETURN = 82, YIELD = 83, AS = 84, IS = 85, 
-    NOT = 86, AND = 87, OR = 88, SUPER = 89, THIS = 90, TRUE = 91, FALSE = 92, 
-    NULL_ = 93, OBJECT = 94, TYPE = 95, TYPEOF = 96, OUT = 97, REF = 98, 
-    IDENTIFIER = 99, INTEGER = 100, FLOAT = 101, STRING = 102, WS = 103, 
-    NEWLINE = 104, BLOCK_COMMENT = 105, LINE_COMMENT = 106
+    T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, PACKAGE = 38, 
+    IMPORT = 39, EXPORT = 40, EXTENDS = 41, IMPLEMENTS = 42, ENUM = 43, 
+    CLASS = 44, INTERFACE = 45, ANNOTATION = 46, INIT = 47, FUN = 48, CONST = 49, 
+    VAR = 50, ABSTRACT = 51, FINAL = 52, STATIC = 53, INLINE = 54, PRIVATE = 55, 
+    PROTECTED = 56, INTERNAL = 57, PUBLIC = 58, IF = 59, ELSE = 60, WHILE = 61, 
+    DO = 62, FOR = 63, IN = 64, MATCH = 65, WHEN = 66, THROW = 67, TRY = 68, 
+    CATCH = 69, FINALLY = 70, CONTINUE = 71, BREAK = 72, RETURN = 73, YIELD = 74, 
+    GT = 75, GE = 76, NE = 77, EQ = 78, LE = 79, LT = 80, MODULUS = 81, 
+    SLASH = 82, STAR = 83, PLUS = 84, DASH = 85, TILDE = 86, BANG = 87, 
+    AS = 88, IS = 89, NOT = 90, AND = 91, OR = 92, SUPER = 93, THIS = 94, 
+    TRUE = 95, FALSE = 96, NULL_ = 97, OBJECT = 98, TYPE = 99, TYPEOF = 100, 
+    OUT = 101, REF = 102, IDENTIFIER = 103, INTEGER = 104, FLOAT = 105, 
+    STRING = 106, WS = 107, NEWLINE = 108, BLOCK_COMMENT = 109, LINE_COMMENT = 110
   };
 
   explicit SpadeLexer(antlr4::CharStream *input);

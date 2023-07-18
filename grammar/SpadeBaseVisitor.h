@@ -95,6 +95,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitOperators(SpadeParser::OperatorsContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitConstructorDecl(SpadeParser::ConstructorDeclContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -239,10 +243,6 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitConditonalExpr(SpadeParser::ConditonalExprContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
   virtual std::any visitOrExpr(SpadeParser::OrExprContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -295,6 +295,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitConditionalExpr(SpadeParser::ConditionalExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitAndExpr(SpadeParser::AndExprContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -311,11 +315,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitPostfixDot(SpadeParser::PostfixDotContext *ctx) override {
+  virtual std::any visitPostfixPrimary(SpadeParser::PostfixPrimaryContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitPostFixPrimary(SpadeParser::PostFixPrimaryContext *ctx) override {
+  virtual std::any visitPostfixDot(SpadeParser::PostfixDotContext *ctx) override {
     return visitChildren(ctx);
   }
 

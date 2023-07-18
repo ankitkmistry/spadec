@@ -17,19 +17,19 @@ public:
     T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
     T__20 = 21, T__21 = 22, T__22 = 23, T__23 = 24, T__24 = 25, T__25 = 26, 
     T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
-    T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, T__37 = 38, 
-    T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
-    T__44 = 45, T__45 = 46, PACKAGE = 47, IMPORT = 48, EXPORT = 49, EXTENDS = 50, 
-    IMPLEMENTS = 51, ENUM = 52, CLASS = 53, INTERFACE = 54, ANNOTATION = 55, 
-    INIT = 56, FUN = 57, CONST = 58, VAR = 59, ABSTRACT = 60, FINAL = 61, 
-    STATIC = 62, INLINE = 63, PRIVATE = 64, PROTECTED = 65, INTERNAL = 66, 
-    PUBLIC = 67, IF = 68, ELSE = 69, WHILE = 70, DO = 71, FOR = 72, IN = 73, 
-    MATCH = 74, WHEN = 75, THROW = 76, TRY = 77, CATCH = 78, FINALLY = 79, 
-    CONTINUE = 80, BREAK = 81, RETURN = 82, YIELD = 83, AS = 84, IS = 85, 
-    NOT = 86, AND = 87, OR = 88, SUPER = 89, THIS = 90, TRUE = 91, FALSE = 92, 
-    NULL_ = 93, OBJECT = 94, TYPE = 95, TYPEOF = 96, OUT = 97, REF = 98, 
-    IDENTIFIER = 99, INTEGER = 100, FLOAT = 101, STRING = 102, WS = 103, 
-    NEWLINE = 104, BLOCK_COMMENT = 105, LINE_COMMENT = 106
+    T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, PACKAGE = 38, 
+    IMPORT = 39, EXPORT = 40, EXTENDS = 41, IMPLEMENTS = 42, ENUM = 43, 
+    CLASS = 44, INTERFACE = 45, ANNOTATION = 46, INIT = 47, FUN = 48, CONST = 49, 
+    VAR = 50, ABSTRACT = 51, FINAL = 52, STATIC = 53, INLINE = 54, PRIVATE = 55, 
+    PROTECTED = 56, INTERNAL = 57, PUBLIC = 58, IF = 59, ELSE = 60, WHILE = 61, 
+    DO = 62, FOR = 63, IN = 64, MATCH = 65, WHEN = 66, THROW = 67, TRY = 68, 
+    CATCH = 69, FINALLY = 70, CONTINUE = 71, BREAK = 72, RETURN = 73, YIELD = 74, 
+    GT = 75, GE = 76, NE = 77, EQ = 78, LE = 79, LT = 80, MODULUS = 81, 
+    SLASH = 82, STAR = 83, PLUS = 84, DASH = 85, TILDE = 86, BANG = 87, 
+    AS = 88, IS = 89, NOT = 90, AND = 91, OR = 92, SUPER = 93, THIS = 94, 
+    TRUE = 95, FALSE = 96, NULL_ = 97, OBJECT = 98, TYPE = 99, TYPEOF = 100, 
+    OUT = 101, REF = 102, IDENTIFIER = 103, INTEGER = 104, FLOAT = 105, 
+    STRING = 106, WS = 107, NEWLINE = 108, BLOCK_COMMENT = 109, LINE_COMMENT = 110
   };
 
   enum {
@@ -38,17 +38,17 @@ public:
     RuleEnumerator = 8, RuleAnnoDecl = 9, RuleInterfaceDecl = 10, RuleClassDecl = 11, 
     RuleParentList = 12, RuleParent = 13, RuleDeclName = 14, RuleTypeParams = 15, 
     RuleTypeParam = 16, RuleMemberDecl = 17, RuleFieldDecl = 18, RuleMethodDecl = 19, 
-    RuleConstructorDecl = 20, RuleModifiers = 21, RuleAccessors = 22, RuleFunctionDecl = 23, 
-    RuleDefinition = 24, RuleParams = 25, RuleParamList = 26, RuleParam = 27, 
-    RuleVarDecl = 28, RuleName = 29, RuleStmts = 30, RuleStmt = 31, RuleDestructDecl = 32, 
-    RuleDestruct = 33, RuleBlock = 34, RuleMatchCase = 35, RuleCatchStmt = 36, 
-    RuleFinallyStmt = 37, RuleBody = 38, RuleElse = 39, RuleExpr = 40, RuleAssigneeList = 41, 
-    RuleAssignee = 42, RuleAssignOperator = 43, RulePostfix = 44, RuleArgs = 45, 
-    RuleArg = 46, RuleIndexer = 47, RuleSlice = 48, RulePrimary = 49, RuleConstant = 50, 
-    RuleLiteral = 51, RuleObjectBuilder = 52, RuleItems = 53, RuleEntries = 54, 
-    RuleEntry = 55, RuleType = 56, RuleTypeArgs = 57, RuleTypeArg = 58, 
-    RuleParamTypes = 59, RuleParamType = 60, RuleTypeList = 61, RuleMemberTypeList = 62, 
-    RuleMemberType = 63
+    RuleOperators = 20, RuleConstructorDecl = 21, RuleModifiers = 22, RuleAccessors = 23, 
+    RuleFunctionDecl = 24, RuleDefinition = 25, RuleParams = 26, RuleParamList = 27, 
+    RuleParam = 28, RuleVarDecl = 29, RuleName = 30, RuleStmts = 31, RuleStmt = 32, 
+    RuleDestructDecl = 33, RuleDestruct = 34, RuleBlock = 35, RuleMatchCase = 36, 
+    RuleCatchStmt = 37, RuleFinallyStmt = 38, RuleBody = 39, RuleElse = 40, 
+    RuleExpr = 41, RuleAssigneeList = 42, RuleAssignee = 43, RuleAssignOperator = 44, 
+    RulePostfix = 45, RuleArgs = 46, RuleArg = 47, RuleIndexer = 48, RuleSlice = 49, 
+    RulePrimary = 50, RuleConstant = 51, RuleLiteral = 52, RuleObjectBuilder = 53, 
+    RuleItems = 54, RuleEntries = 55, RuleEntry = 56, RuleType = 57, RuleTypeArgs = 58, 
+    RuleTypeArg = 59, RuleParamTypes = 60, RuleParamType = 61, RuleTypeList = 62, 
+    RuleMemberTypeList = 63, RuleMemberType = 64
   };
 
   explicit SpadeParser(antlr4::TokenStream *input);
@@ -88,6 +88,7 @@ public:
   class MemberDeclContext;
   class FieldDeclContext;
   class MethodDeclContext;
+  class OperatorsContext;
   class ConstructorDeclContext;
   class ModifiersContext;
   class AccessorsContext;
@@ -355,7 +356,9 @@ public:
     ParentContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     ReferenceContext *reference();
+    antlr4::tree::TerminalNode *LT();
     TypeArgsContext *typeArgs();
+    antlr4::tree::TerminalNode *GT();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -369,7 +372,9 @@ public:
     DeclNameContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *LT();
     TypeParamsContext *typeParams();
+    antlr4::tree::TerminalNode *GT();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -448,11 +453,15 @@ public:
 
   class  MethodDeclContext : public antlr4::ParserRuleContext {
   public:
+    SpadeParser::OperatorsContext *op = nullptr;
     MethodDeclContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *AS();
+    std::vector<TypeContext *> type();
+    TypeContext* type(size_t i);
+    OperatorsContext *operators();
     ParamsContext *params();
-    TypeContext *type();
     DefinitionContext *definition();
 
 
@@ -461,6 +470,36 @@ public:
   };
 
   MethodDeclContext* methodDecl();
+
+  class  OperatorsContext : public antlr4::ParserRuleContext {
+  public:
+    OperatorsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *BANG();
+    antlr4::tree::TerminalNode *DASH();
+    antlr4::tree::TerminalNode *TILDE();
+    antlr4::tree::TerminalNode *PLUS();
+    antlr4::tree::TerminalNode *STAR();
+    antlr4::tree::TerminalNode *SLASH();
+    antlr4::tree::TerminalNode *MODULUS();
+    antlr4::tree::TerminalNode *LT();
+    antlr4::tree::TerminalNode *LE();
+    antlr4::tree::TerminalNode *EQ();
+    antlr4::tree::TerminalNode *NE();
+    antlr4::tree::TerminalNode *GE();
+    antlr4::tree::TerminalNode *GT();
+    antlr4::tree::TerminalNode *IS();
+    antlr4::tree::TerminalNode *NOT();
+    antlr4::tree::TerminalNode *IN();
+    antlr4::tree::TerminalNode *AND();
+    antlr4::tree::TerminalNode *OR();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  OperatorsContext* operators();
 
   class  ConstructorDeclContext : public antlr4::ParserRuleContext {
   public:
@@ -577,6 +616,7 @@ public:
     ParamContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *STAR();
     TypeContext *type();
     ExprContext *expr();
     antlr4::tree::TerminalNode *CONST();
@@ -825,6 +865,7 @@ public:
   public:
     DestructContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *STAR();
     antlr4::tree::TerminalNode *IDENTIFIER();
     antlr4::tree::TerminalNode *INTEGER();
 
@@ -957,6 +998,7 @@ public:
   public:
     CastExprContext(ExprContext *ctx);
 
+    antlr4::Token *safe = nullptr;
     ExprContext *expr();
     antlr4::tree::TerminalNode *AS();
     TypeContext *type();
@@ -968,21 +1010,11 @@ public:
   public:
     TermExprContext(ExprContext *ctx);
 
+    antlr4::Token *op = nullptr;
     std::vector<ExprContext *> expr();
     ExprContext* expr(size_t i);
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  ConditonalExprContext : public ExprContext {
-  public:
-    ConditonalExprContext(ExprContext *ctx);
-
-    std::vector<ExprContext *> expr();
-    ExprContext* expr(size_t i);
-    antlr4::tree::TerminalNode *IS();
-    antlr4::tree::TerminalNode *IN();
-    antlr4::tree::TerminalNode *NOT();
+    antlr4::tree::TerminalNode *PLUS();
+    antlr4::tree::TerminalNode *DASH();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -1002,8 +1034,15 @@ public:
   public:
     RelationalExprContext(ExprContext *ctx);
 
+    antlr4::Token *op = nullptr;
     std::vector<ExprContext *> expr();
     ExprContext* expr(size_t i);
+    antlr4::tree::TerminalNode *LT();
+    antlr4::tree::TerminalNode *LE();
+    antlr4::tree::TerminalNode *EQ();
+    antlr4::tree::TerminalNode *NE();
+    antlr4::tree::TerminalNode *GE();
+    antlr4::tree::TerminalNode *GT();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -1012,8 +1051,12 @@ public:
   public:
     FactorExprContext(ExprContext *ctx);
 
+    antlr4::Token *op = nullptr;
     std::vector<ExprContext *> expr();
     ExprContext* expr(size_t i);
+    antlr4::tree::TerminalNode *STAR();
+    antlr4::tree::TerminalNode *SLASH();
+    antlr4::tree::TerminalNode *MODULUS();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -1044,6 +1087,10 @@ public:
 
     std::vector<ExprContext *> expr();
     ExprContext* expr(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> LT();
+    antlr4::tree::TerminalNode* LT(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> GT();
+    antlr4::tree::TerminalNode* GT(size_t i);
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -1062,7 +1109,12 @@ public:
   public:
     UnaryExprContext(ExprContext *ctx);
 
+    antlr4::Token *op = nullptr;
     PostfixContext *postfix();
+    antlr4::tree::TerminalNode *BANG();
+    antlr4::tree::TerminalNode *TILDE();
+    antlr4::tree::TerminalNode *DASH();
+    antlr4::tree::TerminalNode *PLUS();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -1117,6 +1169,19 @@ public:
     AssigneeListContext *assigneeList();
     AssignOperatorContext *assignOperator();
     ItemsContext *items();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  ConditionalExprContext : public ExprContext {
+  public:
+    ConditionalExprContext(ExprContext *ctx);
+
+    std::vector<ExprContext *> expr();
+    ExprContext* expr(size_t i);
+    antlr4::tree::TerminalNode *IS();
+    antlr4::tree::TerminalNode *IN();
+    antlr4::tree::TerminalNode *NOT();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -1187,21 +1252,21 @@ public:
    
   };
 
+  class  PostfixPrimaryContext : public PostfixContext {
+  public:
+    PostfixPrimaryContext(PostfixContext *ctx);
+
+    PrimaryContext *primary();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
   class  PostfixDotContext : public PostfixContext {
   public:
     PostfixDotContext(PostfixContext *ctx);
 
     PostfixContext *postfix();
     antlr4::tree::TerminalNode *IDENTIFIER();
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  PostFixPrimaryContext : public PostfixContext {
-  public:
-    PostFixPrimaryContext(PostfixContext *ctx);
-
-    PrimaryContext *primary();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -1221,7 +1286,9 @@ public:
     PostfixGenericContext(PostfixContext *ctx);
 
     PostfixContext *postfix();
+    antlr4::tree::TerminalNode *LT();
     TypeArgsContext *typeArgs();
+    antlr4::tree::TerminalNode *GT();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -1340,7 +1407,7 @@ public:
     SuperExprContext(PrimaryContext *ctx);
 
     antlr4::tree::TerminalNode *SUPER();
-    antlr4::tree::TerminalNode *IDENTIFIER();
+    ReferenceContext *reference();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -1448,6 +1515,8 @@ public:
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *OBJECT();
     TypeContext *type();
+    std::vector<MemberDeclContext *> memberDecl();
+    MemberDeclContext* memberDecl(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -1554,7 +1623,9 @@ public:
     ReferenceTypeContext(TypeContext *ctx);
 
     ReferenceContext *reference();
+    antlr4::tree::TerminalNode *LT();
     TypeArgsContext *typeArgs();
+    antlr4::tree::TerminalNode *GT();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -1639,6 +1710,7 @@ public:
     ParamTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     TypeContext *type();
+    antlr4::tree::TerminalNode *STAR();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

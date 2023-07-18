@@ -10,16 +10,28 @@ public:
     enum class Kind {
         PACKAGE, SCOPE, TYPE, METHOD, CONSTRUCTOR, VARIABLE, TYPE_PARAM
     };
+    enum class Accessor {
+        PRIVATE, INTERNAL, PACKAGE_PRIVATE, PROTECTED, PUBLIC
+    };
 protected:
     Kind kind;
     antlr4::Token *name;
     DeclNode *parent = null;
     vector<DeclNode *> children;
     vector<antlr4::Token *> modifiers;
+    map<string, vector<DeclNode *>> members;
 
     explicit DeclNode(Kind type, antlr4::Token *name) : name(name), kind(type) {}
 
 public:
+    vector<DeclNode *> getMembers(string memberName) {
+        try {
+            return members.at(memberName);
+        } catch (const std::out_of_range &) {
+            return {};
+        }
+    }
+
     void addChild(DeclNode *node);
 
     Kind getKind() const { return kind; }
@@ -45,6 +57,12 @@ public:
     void setModifiers(const vector<antlr4::Token *> &modifiers_) { modifiers = modifiers_; }
 
     virtual string getSign() = 0;
+
+    static antlr4::ParserRuleContext *getCtx(DeclNode *node);
+
+    Accessor getAccessibility();
+
+    Package *getPackage();
 };
 
 class Package : public DeclNode {
@@ -77,6 +95,13 @@ protected:
     explicit Type(Kind typeKind, antlr4::Token *name) : DeclNode(DeclNode::Kind::TYPE, name), typeKind(typeKind) {}
 
 public:
+    static Type *INT;
+    static Type *FLOAT;
+    static Type *STRING;
+    static Type *BOOL;
+    static Type *NULL_TYPE;
+    static Type *ARRAY;
+
     Kind getTypeKind() const { return typeKind; }
 
     void setTypeKind(Kind typeKind_) { typeKind = typeKind_; }
@@ -88,6 +113,8 @@ public:
     void setImplements(const vector<Interface *> &implements_) { implements = implements_; }
 
     virtual bool isSuperOf(Type *type) const;
+
+    static vector<Type *> getSuperTypes(Type *type);
 };
 
 class Class : public Type {

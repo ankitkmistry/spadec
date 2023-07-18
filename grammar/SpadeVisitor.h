@@ -59,6 +59,8 @@ public:
 
     virtual std::any visitMethodDecl(SpadeParser::MethodDeclContext *context) = 0;
 
+    virtual std::any visitOperators(SpadeParser::OperatorsContext *context) = 0;
+
     virtual std::any visitConstructorDecl(SpadeParser::ConstructorDeclContext *context) = 0;
 
     virtual std::any visitModifiers(SpadeParser::ModifiersContext *context) = 0;
@@ -131,8 +133,6 @@ public:
 
     virtual std::any visitTermExpr(SpadeParser::TermExprContext *context) = 0;
 
-    virtual std::any visitConditonalExpr(SpadeParser::ConditonalExprContext *context) = 0;
-
     virtual std::any visitOrExpr(SpadeParser::OrExprContext *context) = 0;
 
     virtual std::any visitRelationalExpr(SpadeParser::RelationalExprContext *context) = 0;
@@ -159,6 +159,8 @@ public:
 
     virtual std::any visitAssignExpr(SpadeParser::AssignExprContext *context) = 0;
 
+    virtual std::any visitConditionalExpr(SpadeParser::ConditionalExprContext *context) = 0;
+
     virtual std::any visitAndExpr(SpadeParser::AndExprContext *context) = 0;
 
     virtual std::any visitAssigneeList(SpadeParser::AssigneeListContext *context) = 0;
@@ -167,9 +169,9 @@ public:
 
     virtual std::any visitAssignOperator(SpadeParser::AssignOperatorContext *context) = 0;
 
-    virtual std::any visitPostfixDot(SpadeParser::PostfixDotContext *context) = 0;
+    virtual std::any visitPostfixPrimary(SpadeParser::PostfixPrimaryContext *context) = 0;
 
-    virtual std::any visitPostFixPrimary(SpadeParser::PostFixPrimaryContext *context) = 0;
+    virtual std::any visitPostfixDot(SpadeParser::PostfixDotContext *context) = 0;
 
     virtual std::any visitPostfixBlock(SpadeParser::PostfixBlockContext *context) = 0;
 
