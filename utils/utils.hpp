@@ -5,10 +5,10 @@
 #include "exceptions.hpp"
 
 /**
- * Casts a value of varKind From to a value of varKind To.
+ * Casts a value of type From to a value of type To.
  * @throws CastError if casting fails
- * @tparam To varKind of the value to be casted
- * @tparam From varKind of the casted value
+ * @tparam To type of the value to be casted
+ * @tparam From type of the casted value
  * @param val the value to be casted
  * @return the casted value
  */
@@ -21,11 +21,11 @@ To cast(From val) {
 }
 
 /**
- * Checks if the varKind of a value is a superclass of varKind V.
- * @tparam T compile time varKind of the value
- * @tparam V varKind for checking
+ * Checks if the type of a value is a superclass of type V.
+ * @tparam T compile time type of the value
+ * @tparam V type for checking
  * @param obj the value to be checked
- * @return true if the varKind of a value is a superclass of varKind V, false otherwise
+ * @return true if the type of a value is a superclass of type V, false otherwise
  */
 template<class T, class V>
 bool is(V obj) {
@@ -35,7 +35,7 @@ bool is(V obj) {
 /**
  * Converts a vector<T> to a comma separated list. <br>
  * Assumes that values have a toString() method that gives string representation of the value.
- * @tparam T varKind of the vectors
+ * @tparam T type of the vector items
  * @param data
  * @return the comma separated list as a string
  */
@@ -51,7 +51,7 @@ string listToString(vector<T> data) {
 /**
  * Converts a vector<T*> to a comma separated list. <br>
  * Assumes that values have a toString() method that gives string representation of the value.
- * @tparam T varKind of the vectors
+ * @tparam T type of the vector items
  * @param data
  * @return the comma separated list as a string
  */
