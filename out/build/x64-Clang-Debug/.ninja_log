@@ -1,0 +1,6 @@
+# ninja log v5
+20	2421	7528896800950424	CMakeFiles/spadec.dir/src/utils/utils.cpp.obj	5655ed7c627778fe
+5	1890	7529324664176323	CMakeFiles/spadec.dir/src/main.cpp.obj	5c21951d6009f09a
+16	1239	7529328832601919	CMakeFiles/spadec.dir/src/lexer.cpp.obj	881a7f99d458eb8e
+1239	1445	7529328834011926	spadec.exe	c43ff832c160b2fa
+3	17	0	clean	8c45b54705a541e8
