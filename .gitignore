@@ -6,3 +6,4 @@
 /.vs
 /cmake-build-debug-visual-studio
 /out/build/x64-Debug
+/out/build/x64-Clang-Debug
