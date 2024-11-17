@@ -8,7 +8,7 @@ include_directories(src)
 file(GLOB_RECURSE SPADEC_SRCS src/*.cpp)
 file(GLOB_RECURSE SPADEC_INCLUDES src/*.hpp)
 
-add_executable(spadec ${SPADEC_SRCS} ${SPADEC_INCLUDES})
+add_executable(spadec ${SPADEC_SRCS} ${SPADEC_INCLUDES} "src/token.cpp")
 
 if (MSVC)
     find_library(DBGHELP_LIB dbghelp REQUIRED)

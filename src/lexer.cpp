@@ -4,171 +4,6 @@
 
 namespace spade
 {
-    const char *to_string(TokenType e) {
-        switch (e) {
-            case TokenType::LPAREN:
-                return "LPAREN";
-            case TokenType::RPAREN:
-                return "RPAREN";
-            case TokenType::LBRACE:
-                return "LBRACE";
-            case TokenType::RBRACE:
-                return "RBRACE";
-            case TokenType::LBRACKET:
-                return "LBRACKET";
-            case TokenType::RBRACKET:
-                return "RBRACKET";
-            case TokenType::LANGLE:
-                return "LANGLE";
-            case TokenType::RANGLE:
-                return "RANGLE";
-            case TokenType::BANG:
-                return "BANG";
-            case TokenType::TILDE:
-                return "TILDE";
-            case TokenType::PLUS:
-                return "PLUS";
-            case TokenType::DASH:
-                return "DASH";
-            case TokenType::STAR:
-                return "STAR";
-            case TokenType::SLASH:
-                return "SLASH";
-            case TokenType::PERCENT:
-                return "PERCENT";
-            case TokenType::AMPERSAND:
-                return "AMPERSAND";
-            case TokenType::PIPE:
-                return "PIPE";
-            case TokenType::CARET:
-                return "CARET";
-            case TokenType::DOT:
-                return "DOT";
-            case TokenType::COMMA:
-                return "COMMA";
-            case TokenType::EQUAL:
-                return "EQUAL";
-            case TokenType::COLON:
-                return "COLON";
-            case TokenType::PACKAGE:
-                return "PACKAGE";
-            case TokenType::IMPORT:
-                return "IMPORT";
-            case TokenType::EXPORT:
-                return "EXPORT";
-            case TokenType::EXTENDS:
-                return "EXTENDS";
-            case TokenType::IMPLEMENTS:
-                return "IMPLEMENTS";
-            case TokenType::ENUM:
-                return "ENUM";
-            case TokenType::CLASS:
-                return "CLASS";
-            case TokenType::INTERFACE:
-                return "INTERFACE";
-            case TokenType::ANNOTATION:
-                return "ANNOTATION";
-            case TokenType::INIT:
-                return "INIT";
-            case TokenType::FUN:
-                return "FUN";
-            case TokenType::CONST:
-                return "CONST";
-            case TokenType::VAR:
-                return "VAR";
-            case TokenType::ABSTRACT:
-                return "ABSTRACT";
-            case TokenType::FINAL:
-                return "FINAL";
-            case TokenType::STATIC:
-                return "STATIC";
-            case TokenType::INLINE:
-                return "INLINE";
-            case TokenType::PRIVATE:
-                return "PRIVATE";
-            case TokenType::PROTECTED:
-                return "PROTECTED";
-            case TokenType::INTERNAL:
-                return "INTERNAL";
-            case TokenType::PUBLIC:
-                return "PUBLIC";
-            case TokenType::IF:
-                return "IF";
-            case TokenType::ELSE:
-                return "ELSE";
-            case TokenType::WHILE:
-                return "WHILE";
-            case TokenType::DO:
-                return "DO";
-            case TokenType::FOR:
-                return "FOR";
-            case TokenType::IN:
-                return "IN";
-            case TokenType::MATCH:
-                return "MATCH";
-            case TokenType::WHEN:
-                return "WHEN";
-            case TokenType::THROW:
-                return "THROW";
-            case TokenType::TRY:
-                return "TRY";
-            case TokenType::CATCH:
-                return "CATCH";
-            case TokenType::FINALLY:
-                return "FINALLY";
-            case TokenType::CONTINUE:
-                return "CONTINUE";
-            case TokenType::BREAK:
-                return "BREAK";
-            case TokenType::RETURN:
-                return "RETURN";
-            case TokenType::YIELD:
-                return "YIELD";
-            case TokenType::AS:
-                return "AS";
-            case TokenType::IS:
-                return "IS";
-            case TokenType::NOT:
-                return "NOT";
-            case TokenType::AND:
-                return "AND";
-            case TokenType::OR:
-                return "OR";
-            case TokenType::SUPER:
-                return "SUPER";
-            case TokenType::THIS:
-                return "THIS";
-            case TokenType::TRUE:
-                return "TRUE";
-            case TokenType::FALSE:
-                return "FALSE";
-            case TokenType::NULL:
-                return "NULL";
-            case TokenType::OBJECT:
-                return "OBJECT";
-            case TokenType::TYPE:
-                return "TYPE";
-            case TokenType::TYPEOF:
-                return "TYPEOF";
-            case TokenType::IDENTIFIER:
-                return "IDENTIFIER";
-            case TokenType::INTEGER:
-                return "INTEGER";
-            case TokenType::FLOAT:
-                return "FLOAT";
-            case TokenType::STRING:
-                return "STRING";
-            case TokenType::END_OF_FILE:
-                return "END_OF_FILE";
-            default:
-                return "unknown";
-        }
-    }
-
-    std::shared_ptr<Token> make_token(TokenType type, const string &text, int line, int col) {
-        return std::make_shared<Token>(type, text, line, col);
-    }
-
     int Lexer::current() const {
         if (end - 1 >= length()) return EOF;
         return data[end - 1];
@@ -358,13 +193,12 @@ namespace spade
                     if (std::isalpha(c)) {
                         while (std::isalnum(c = peek()) || c == '_') advance();
                         auto token = get_token(TokenType::IDENTIFIER);
-                        try {
-                            auto type = KEYWORDS.at(token->get_text());
-                            token->set_type(type);
-                            return token;
-                        } catch (const std::out_of_range &) {
+                        TokenType keyword_type;
+                        if (TokenInfo::get_type_if_keyword(token->get_text(), keyword_type)) {
+                            token->set_type(keyword_type);
                             return token;
                         }
+                        return token;
                     }
                     if (is_decimal_digit(c)) {
                         if (c == '0') {
@@ -394,7 +228,7 @@ namespace spade
                         }
                         return get_token(TokenType::INTEGER);
                     }
-                    throw make_error(format("unexpected character: %lc", c));
+                    throw make_error(std::format("unexpected character: {:c}", c));
                 }
             }
         }

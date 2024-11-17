@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "lexer.hpp"
+#include "parser.hpp"
 #include "utils/error.hpp"
 
 using namespace spade;
@@ -13,11 +14,13 @@ void compile() {
         throw FileOpenError(file_name);
     }
     Lexer lexer(file);
-    auto token = lexer.next_token();
-    while (token->get_type() != TokenType::END_OF_FILE) {
-        std::cout << *token << '\n';
-        token = lexer.next_token();
-    }
+    Parser parser(&lexer);
+    parser.constant();
+    // auto token = lexer.next_token();
+    // while (token->get_type() != TokenType::END_OF_FILE) {
+    //     std::cout << *token << '\n';
+    //     token = lexer.next_token();
+    // }
     std::fclose(file);
 }
 
@@ -25,7 +28,9 @@ int main() {
     try {
         compile();
     } catch (const LexerError &err) {
-        std::cerr << '[' << err.get_line_start() << ':' << err.get_col_start() << "]: " << err.what() << '\n';
+        std::cerr << std::format("error [{}:{}] {}\n", err.get_line_start(), err.get_col_start(), err.what());
+    } catch (const ParserError &err) {
+        std::cerr << std::format("error [{}:{}] {}\n", err.get_line_start(), err.get_col_start(), err.what());
     }
     return 0;
 }

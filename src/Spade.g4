@@ -159,7 +159,7 @@ slice: expr
 primary: constant                       # constantExpr
        | objectBuilder                 # builderExpr
        | SUPER ('[' reference ']')?     # superExpr
-       | THIS                         # thisExpr
+       | SELF                         # thisExpr
        | '(' (expr)  ')'                # groupExpr
        | '(' items? ')'                 # tupleExpr
        | '{' items '}'                  # setExpr
@@ -168,8 +168,7 @@ primary: constant                       # constantExpr
        | type                           # typeExpr
        ;
 
-constant: TRUE | FALSE | NULL | literal;
-literal: INTEGER | FLOAT | STRING | IDENTIFIER;
+constant: TRUE | FALSE | NULL | INTEGER | FLOAT | STRING | IDENTIFIER;
 
 objectBuilder: OBJECT (':' type)? '{' memberDecl* '}';
 
@@ -265,7 +264,7 @@ AND: 'and';
 OR: 'or';
 // Primary expressions
 SUPER: 'super';
-THIS: 'this';
+SELF: 'self';
 // Literals
 TRUE: 'true';
 FALSE: 'false';
