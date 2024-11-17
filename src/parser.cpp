@@ -1,5 +1,7 @@
 #include "parser.hpp"
 
+#include "utils/utils.hpp"
+
 namespace spade
 {
     template<typename... Ts>
@@ -90,29 +92,179 @@ namespace spade
         return std::make_shared<ast::Reference>(path);
     }
 
-    std::shared_ptr<ast::Constant> Parser::constant() {
-        auto type = peek()->get_type();
-        if (type == TokenType::TRUE || type == TokenType::FALSE || type == TokenType::NULL || type == TokenType::INTEGER ||
-            type == TokenType::FLOAT || type == TokenType::STRING || type == TokenType::IDENTIFIER) {
-            return std::make_shared<ast::Constant>(advance());
+    std::shared_ptr<ast::Expression> Parser::or_() {
+        auto left = and_();
+        while (match(TokenType::OR)) {
+            auto op = current();
+            auto right = and_();
+            left = std::make_shared<ast::Binary>(left, op, right);
         }
-        throw error(std::format("expected {}",
-                                make_expected_string(TokenType::TRUE, TokenType::FALSE, TokenType::NULL, TokenType::INTEGER,
-                                                     TokenType::FLOAT, TokenType::STRING, TokenType::IDENTIFIER)));
+        return left;
     }
 
-    std::shared_ptr<ast::Super> Parser::super() {
-        std::shared_ptr<Token> end;
-        std::shared_ptr<Token> start = end = expect(TokenType::SUPER);
-        if (match(TokenType::LBRACKET)) {
-            auto ref = reference();
-            end = expect(TokenType::RBRACKET);
-            return std::make_shared<ast::Super>(start, end, ref);
+    std::shared_ptr<ast::Expression> Parser::and_() {
+        auto left = not_();
+        while (match(TokenType::AND)) {
+            auto op = current();
+            auto right = not_();
+            left = std::make_shared<ast::Binary>(left, op, right);
         }
-        return std::make_shared<ast::Super>(start, end, null);
+        return left;
     }
 
-    std::shared_ptr<ast::Self> Parser::self() {
-        return std::make_shared<ast::Self>(expect(TokenType::SELF));
+    std::shared_ptr<ast::Expression> Parser::not_() {
+        if (match(TokenType::NOT)) {
+            auto op = current();
+            auto expr = not_();
+            return std::make_shared<ast::Unary>(op, expr);
+        }
+        auto expr = conditional();
+        return expr;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::bit_or() {
+        auto left = bit_xor();
+        while (match(TokenType::PIPE)) {
+            auto op = current();
+            auto right = bit_xor();
+            left = std::make_shared<ast::Binary>(left, op, right);
+        }
+        return left;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::bit_xor() {
+        auto left = bit_and();
+        while (match(TokenType::CARET)) {
+            auto op = current();
+            auto right = bit_and();
+            left = std::make_shared<ast::Binary>(left, op, right);
+        }
+        return left;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::bit_and() {
+        auto left = shift();
+        while (match(TokenType::AMPERSAND)) {
+            auto op = current();
+            auto right = shift();
+            left = std::make_shared<ast::Binary>(left, op, right);
+        }
+        return left;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::shift() {
+        auto left = term();
+        while (match(TokenType::LSHIFT) || match(TokenType::RSHIFT) || match(TokenType::URSHIFT)) {
+            auto op = current();
+            auto right = term();
+            left = std::make_shared<ast::Binary>(left, op, right);
+        }
+        return left;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::term() {
+        auto left = factor();
+        while (match(TokenType::PLUS) || match(TokenType::DASH)) {
+            auto op = current();
+            auto right = factor();
+            left = std::make_shared<ast::Binary>(left, op, right);
+        }
+        return left;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::factor() {
+        auto left = power();
+        while (match(TokenType::STAR) || match(TokenType::SLASH) || match(TokenType::PERCENT)) {
+            auto op = current();
+            auto right = power();
+            left = std::make_shared<ast::Binary>(left, op, right);
+        }
+        return left;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::power() {
+        std::vector<std::shared_ptr<Token>> ops;
+        std::vector<std::shared_ptr<ast::Expression>> exprs;
+        exprs.push_back(cast());
+        while (match(TokenType::STAR_STAR)) {
+            ops.push_back(current());
+            exprs.push_back(cast());
+        }
+        std::shared_ptr<ast::Expression> expr = exprs.back();
+        for (int i = static_cast<int>(ops.size()) - 1; i >= 0; i--) {
+            expr = std::make_shared<ast::Binary>(exprs[i], ops[i], expr);
+        }
+        return expr;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::elvis() {
+        auto left = unary();
+        while (match(TokenType::ELVIS)) {
+            auto op = current();
+            auto right = unary();
+            left = std::make_shared<ast::Binary>(left, op, right);
+        }
+        return left;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::unary() {
+        if (match(TokenType::BANG) || match(TokenType::TILDE) || match(TokenType::DASH) || match(TokenType::PLUS)) {
+            auto op = current();
+            auto expr = unary();
+            return std::make_shared<ast::Unary>(op, expr);
+        }
+        auto expr = postfix();
+        return expr;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::postfix() {
+        auto caller = primary();
+        bool safe = false;
+        switch (peek()->get_type()) {
+            case TokenType::HOOK:
+                safe = true;
+                advance();
+            case TokenType::DOT: {
+                expect(TokenType::DOT);
+                auto member = expect(TokenType::IDENTIFIER);
+                return safe ? std::make_shared<ast::SafeDotAccess>(caller, member)
+                            : std::make_shared<ast::DotAccess>(caller, member);
+            }
+            default:
+                break;
+        }
+        return caller;
+    }
+
+    std::shared_ptr<ast::Expression> Parser::primary() {
+        switch (peek()->get_type()) {
+            case TokenType::TRUE:
+            case TokenType::FALSE:
+            case TokenType::NULL:
+            case TokenType::INTEGER:
+            case TokenType::FLOAT:
+            case TokenType::STRING:
+            case TokenType::IDENTIFIER:
+                return std::make_shared<ast::Constant>(advance());
+
+            case TokenType::SUPER: {
+                std::shared_ptr<Token> end;
+                std::shared_ptr<Token> start = end = expect(TokenType::SUPER);
+                if (match(TokenType::LBRACKET)) {
+                    auto ref = reference();
+                    end = expect(TokenType::RBRACKET);
+                    return std::make_shared<ast::Super>(start, end, ref);
+                }
+                return std::make_shared<ast::Super>(start, end, null);
+            }
+
+            case TokenType::SELF:
+                return std::make_shared<ast::Self>(advance());
+            default:
+                throw error(std::format("expected {}",
+                                        make_expected_string(TokenType::TRUE, TokenType::FALSE, TokenType::NULL,
+                                                             TokenType::INTEGER, TokenType::FLOAT, TokenType::STRING,
+                                                             TokenType::IDENTIFIER, TokenType::SUPER, TokenType::SELF)));
+        }
     }
 }    // namespace spade

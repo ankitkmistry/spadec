@@ -156,7 +156,7 @@ slice: expr
      | expr? ':' expr? (':' expr?)?;
 
 // Primary expressions
-primary: constant                       # constantExpr
+primary: TRUE | FALSE | NULL | INTEGER | FLOAT | STRING | IDENTIFIER                       # constantExpr
        | objectBuilder                 # builderExpr
        | SUPER ('[' reference ']')?     # superExpr
        | SELF                         # thisExpr
@@ -167,8 +167,6 @@ primary: constant                       # constantExpr
        | '[' items? ']'                 # listExpr
        | type                           # typeExpr
        ;
-
-constant: TRUE | FALSE | NULL | INTEGER | FLOAT | STRING | IDENTIFIER;
 
 objectBuilder: OBJECT (':' type)? '{' memberDecl* '}';
 

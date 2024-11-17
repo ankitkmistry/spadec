@@ -117,11 +117,19 @@ namespace spade
                 case ']':
                     return get_token(TokenType::RBRACKET);
                 case '<':
+                    if (match('<')) return get_token(TokenType::LANGLE);
                     return get_token(TokenType::LANGLE);
                 case '>':
+                    if (match('>')) {
+                        if (match('>')) return get_token(TokenType::URSHIFT);
+                        return get_token(TokenType::RSHIFT);
+                    }
                     return get_token(TokenType::RANGLE);
                 case '!':
                     return get_token(TokenType::BANG);
+                case '?':
+                    if (match('?')) return get_token(TokenType::ELVIS);
+                    return get_token(TokenType::HOOK);
                 case '~':
                     return get_token(TokenType::TILDE);
                 case '+':
@@ -129,6 +137,7 @@ namespace spade
                 case '-':
                     return get_token(TokenType::DASH);
                 case '*':
+                    if (match('*')) return get_token(TokenType::STAR_STAR);
                     return get_token(TokenType::STAR);
                 case '/': {
                     if (match('/')) {

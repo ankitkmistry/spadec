@@ -122,6 +122,24 @@ namespace spade::ast
         }
     };
 
+    class DotAccess : public Postfix {
+    protected:
+        std::shared_ptr<Token> member;
+    public:
+        DotAccess(std::shared_ptr<Expression> caller, std::shared_ptr<Token> member)
+            : Postfix(member, caller),
+              member(member) {}
+    };
+
+    class SafeDotAccess : public Postfix {
+      protected:
+        std::shared_ptr<Token> member;
+
+      public:
+        SafeDotAccess(std::shared_ptr<Expression> caller, std::shared_ptr<Token> member)
+            : Postfix(member, caller), member(member) {}
+    };
+
     class Argument : public AstNode {
         std::shared_ptr<Token> name;
         std::shared_ptr<Expression> expr;

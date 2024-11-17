@@ -26,13 +26,54 @@ namespace spade
 
         // Parser rules
 
+        template<typename R, typename C1, typename C2>
+        std::shared_ptr<R> rule_or(std::function<std::shared_ptr<C1>()> rule1, std::function<std::shared_ptr<C2>()> rule2) {
+            int tok_idx = index;
+            try {
+                return cast<R>(rule1());
+            } catch (const ParserError &) {
+                index = tok_idx;
+                return cast<R>(rule2());
+            }
+        }
+
+        template<typename R, typename C1, typename C2>
+            requires std::same_as<R, C1> && std::same_as<R, C2>
+        std::shared_ptr<R> rule_or(std::function<std::shared_ptr<C1>()> rule1, std::function<std::shared_ptr<C2>()> rule2) {
+            int tok_idx = index;
+            try {
+                return rule1();
+            } catch (const ParserError &) {
+                index = tok_idx;
+                return rule2();
+            }
+        }
 
       public:
         std::shared_ptr<ast::Reference> reference();
 
-        std::shared_ptr<ast::Constant> constant();
-        std::shared_ptr<ast::Super> super();
-        std::shared_ptr<ast::Self> self();
+        // Expressions
+        // Binary
+        std::shared_ptr<ast::Expression> or_();
+        std::shared_ptr<ast::Expression> and_();
+        std::shared_ptr<ast::Expression> not_();
+        std::shared_ptr<ast::Expression> conditional();
+        std::shared_ptr<ast::Expression> relational();
+        std::shared_ptr<ast::Expression> bit_or();
+        std::shared_ptr<ast::Expression> bit_xor();
+        std::shared_ptr<ast::Expression> bit_and();
+        std::shared_ptr<ast::Expression> shift();
+        std::shared_ptr<ast::Expression> term();
+        std::shared_ptr<ast::Expression> factor();
+        std::shared_ptr<ast::Expression> power();
+        std::shared_ptr<ast::Expression> cast();
+        std::shared_ptr<ast::Expression> elvis();
+        // Unary
+        std::shared_ptr<ast::Expression> unary();
+        // Postfix
+        std::shared_ptr<ast::Expression> postfix();
+        // Primary
+        std::shared_ptr<ast::Expression> primary();
 
         explicit Parser(Lexer *lexer) : lexer(lexer) {}
 
