@@ -12,8 +12,12 @@ namespace spade
         RBRACE,
         LBRACKET,
         RBRACKET,
-        LANGLE,
-        RANGLE,
+        LT,
+        LE,
+        EQ,
+        NE,
+        GE,
+        GT,
         // Operators
         BANG,
         HOOK,
@@ -31,7 +35,9 @@ namespace spade
         AMPERSAND,
         PIPE,
         CARET,
+
         DOT,
+        ARROW,
         COMMA,
         EQUAL,
         COLON,
@@ -92,7 +98,7 @@ namespace spade
         // Literals
         TRUE,
         FALSE,
-        NULL,
+        NULL_,
         // Special keywords
         OBJECT,
         TYPE,
@@ -106,7 +112,7 @@ namespace spade
         END_OF_FILE
     };
 
-    class Token {
+    class Token final {
       private:
         TokenType type;
         string text;
@@ -183,8 +189,11 @@ namespace spade
 
     std::shared_ptr<Token> make_token(TokenType type, const string &text, int line, int col);
 
-    class TokenInfo {
+    class TokenInfo final {
       public:
+        TokenInfo() = delete;
+        ~TokenInfo() = delete;
+
         static bool get_type_if_keyword(const string &text, TokenType &type);
         static string get_repr(TokenType type);
         static string to_string(TokenType type);

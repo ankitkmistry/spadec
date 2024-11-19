@@ -93,7 +93,7 @@ namespace spade
             {"self", TokenType::SELF},
             {"true", TokenType::TRUE},
             {"false", TokenType::FALSE},
-            {"null", TokenType::NULL},
+            {"null", TokenType::NULL_},
             {"object", TokenType::OBJECT},
             {"type", TokenType::TYPE},
             {"typeof", TokenType::TYPEOF}
@@ -130,9 +130,17 @@ namespace spade
                 return "[";
             case TokenType::RBRACKET:
                 return "]";
-            case TokenType::LANGLE:
+            case TokenType::LT:
                 return "<";
-            case TokenType::RANGLE:
+            case TokenType::LE:
+                return "<=";
+            case TokenType::EQ:
+                return "==";
+            case TokenType::NE:
+                return "!=";
+            case TokenType::GE:
+                return ">=";
+            case TokenType::GT:
                 return ">";
             case TokenType::BANG:
                 return "!";
@@ -168,6 +176,8 @@ namespace spade
                 return "^";
             case TokenType::DOT:
                 return ".";
+            case TokenType::ARROW:
+                return "->";
             case TokenType::COMMA:
                 return ",";
             case TokenType::EQUAL:
@@ -266,7 +276,7 @@ namespace spade
                 return "true";
             case TokenType::FALSE:
                 return "false";
-            case TokenType::NULL:
+            case TokenType::NULL_:
                 return "null";
             case TokenType::OBJECT:
                 return "object";

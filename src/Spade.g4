@@ -117,7 +117,7 @@ else: ELSE body;
 expr
     : op=(BANG|TILDE|DASH|PLUS)? postfix                            # unaryExpr
     | expr '??' expr                                        # elvisExpr
-    | expr AS safe='?'? type                                   # castExpr
+    | expr (AS safe='?'? type)*                                   # castExpr
     | <assoc=right> expr '**' expr                          # powerExpr
     | expr op=(STAR|SLASH|MODULUS) expr                               # factorExpr
     | expr op=(PLUS|DASH) expr                                   # termExpr
@@ -130,7 +130,7 @@ expr
     | NOT expr                                            # notExpr
     | expr AND expr                                       # andExpr
     | expr OR expr                                        # orExpr
-    | expr '?' expr ':' expr                                # ternaryExpr
+    | expr if expr else expr                                # ternaryExpr
     | (param | '(' params? ')') '->' type? (block | expr)   # lambdaExpr
     | assigneeList assignOperator items                     # assignExpr
     ;
@@ -176,14 +176,17 @@ entries: entry (',' entry)* ','?;
 entry: primary ':' expr;
 
 // Kind expressions
-type: type '?'                              # nullableType
+type: type '|' type                         # unionType
     | type '&' type                         # intersectionType
-    | type '|' type                         # unionType
-    | reference ('[' typeArgs ']')?              # referenceType
-    | '(' paramTypes ')' '->' type          # functionType
-    | TYPE                                # literalType
-    | OBJECT ('{' memberTypeList? '}')?  # objectType
-    | TYPEOF '(' expr ')'                 # typeofType
+    | type '?'                              # nullableType
+    | primaryType;
+
+primaryType: | reference ('[' typeArgs ']')?              # referenceType
+             | TYPEOF '(' expr ')'                 # typeofType
+             | TYPE                                # literalType
+             | '(' paramTypes? ')' '->' type          # functionType
+             | '(' type ')' # groupedType
+             | OBJECT ('{' memberTypeList? '}')?  # objectType
     ;
 
 typeArgs: type (',' type)* ','?;

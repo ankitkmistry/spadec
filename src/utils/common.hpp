@@ -33,8 +33,6 @@
 #include <memory>
 #include <format>
 
-#undef NULL
-
 #define null (nullptr)
 
 namespace spade

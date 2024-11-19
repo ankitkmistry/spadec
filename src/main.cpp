@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "lexer.hpp"
-#include "parser.hpp"
+#include "lexer/lexer.hpp"
+#include "parser/parser.hpp"
 #include "utils/error.hpp"
 
 using namespace spade;
@@ -15,7 +15,7 @@ void compile() {
     }
     Lexer lexer(file);
     Parser parser(&lexer);
-    parser.constant();
+    parser.expression();
     // auto token = lexer.next_token();
     // while (token->get_type() != TokenType::END_OF_FILE) {
     //     std::cout << *token << '\n';

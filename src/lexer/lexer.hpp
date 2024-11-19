@@ -8,7 +8,7 @@
 
 namespace spade
 {
-    class Lexer {
+    class Lexer final {
       private:
         string data;
         int start = 0;

@@ -12,7 +12,7 @@ namespace spade
     string cpp_demangle(string str);
 
     /**
-     * Casts a value of type From to a value of type To.
+     * Casts a value of nullable_type From to a value of nullable_type To.
      * @throws CastError if casting fails
      * @tparam To type of the value to be cast
      * @tparam From type of the cast value
@@ -27,7 +27,7 @@ namespace spade
     }
 
     /**
-     * Casts a shared pointer of type From to a shared pointer of type To.
+     * Casts a shared pointer of nullable_type From to a shared pointer of nullable_type To.
      * @throws CastError if casting fails
      * @tparam To type of the shared pointer to be cast
      * @tparam From type of the cast shared pointer
@@ -42,7 +42,7 @@ namespace spade
     }
 
     /**
-     * Checks if the type of key_char is a superclass of type V.
+     * Checks if the nullable_type of key_char is a superclass of nullable_type V.
      * @tparam T compile time type of the value
      * @tparam V type for checking
      * @param obj the value to be checked
@@ -54,7 +54,7 @@ namespace spade
     }
 
     /**
-     * Checks if the type of key_char is a superclass of type V.
+     * Checks if the nullable_type of key_char is a superclass of nullable_type V.
      * @tparam T compile time type of the value
      * @tparam V type for checking
      * @param obj the value to be checked

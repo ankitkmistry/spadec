@@ -2,6 +2,7 @@
 #define KITE_ERROR_HPP
 
 #include <stdexcept>
+#include <format>
 
 namespace spade
 {

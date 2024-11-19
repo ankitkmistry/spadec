@@ -1,6 +1,8 @@
 #pragma once
+
+#include "utils/utils.hpp"
 #include "ast.hpp"
-#include "lexer.hpp"
+#include "lexer/lexer.hpp"
 
 namespace spade
 {
@@ -21,25 +23,22 @@ namespace spade
         std::shared_ptr<Token> match(TokenType type);
         std::shared_ptr<Token> expect(TokenType type);
 
-        ParserError error(const string &msg, std::shared_ptr<Token> token);
+        static ParserError error(const string &msg, std::shared_ptr<Token> token);
         ParserError error(const string &msg);
-
-        // Parser rules
 
         template<typename R, typename C1, typename C2>
         std::shared_ptr<R> rule_or(std::function<std::shared_ptr<C1>()> rule1, std::function<std::shared_ptr<C2>()> rule2) {
             int tok_idx = index;
             try {
-                return cast<R>(rule1());
+                return spade::cast<R>(rule1());
             } catch (const ParserError &) {
                 index = tok_idx;
-                return cast<R>(rule2());
+                return spade::cast<R>(rule2());
             }
         }
 
-        template<typename R, typename C1, typename C2>
-            requires std::same_as<R, C1> && std::same_as<R, C2>
-        std::shared_ptr<R> rule_or(std::function<std::shared_ptr<C1>()> rule1, std::function<std::shared_ptr<C2>()> rule2) {
+        template<typename T>
+        std::shared_ptr<T> rule_or(std::function<std::shared_ptr<T>()> rule1, std::function<std::shared_ptr<T>()> rule2) {
             int tok_idx = index;
             try {
                 return rule1();
@@ -49,10 +48,26 @@ namespace spade
             }
         }
 
-      public:
+        template<typename T>
+        std::shared_ptr<T> rule_optional(std::function<std::shared_ptr<T>()> rule) {
+            int tok_idx = index;
+            try {
+                return rule();
+            } catch (const ParserError &) {
+                index = tok_idx;
+                return null;
+            }
+        }
+
+        // Parser rules
         std::shared_ptr<ast::Reference> reference();
 
         // Expressions
+    public:
+        std::shared_ptr<ast::Expression> expression();
+    private:
+        std::shared_ptr<ast::Expression> assignment();
+        std::shared_ptr<ast::Expression> ternary();
         // Binary
         std::shared_ptr<ast::Expression> or_();
         std::shared_ptr<ast::Expression> and_();
@@ -75,6 +90,18 @@ namespace spade
         // Primary
         std::shared_ptr<ast::Expression> primary();
 
+        // Type expressions
+        std::shared_ptr<ast::Type> type();
+        std::shared_ptr<ast::Type> union_type();
+        std::shared_ptr<ast::Type> intersection_type();
+        std::shared_ptr<ast::Type> nullable_type();
+        std::shared_ptr<ast::Type> primary_type();
+
+        std::vector<std::shared_ptr<ast::Type>> type_list();
+        std::vector<std::shared_ptr<ast::Expression>> assignee_list();
+        std::vector<std::shared_ptr<ast::Expression>> expr_list();
+
+      public:
         explicit Parser(Lexer *lexer) : lexer(lexer) {}
 
         Parser(const Parser &other) = default;
