@@ -1,7 +1,10 @@
 #pragma once
 
+#include <ostream>
+
 #include "utils/common.hpp"
 #include "lexer/token.hpp"
+#include "utils/utils.hpp"
 
 namespace spade::ast
 {
@@ -111,7 +114,7 @@ namespace spade::ast
             std::shared_ptr<Type> return_type;
 
           public:
-            Function(std::shared_ptr<Token> start, std::vector<std::shared_ptr<Type>> param_types,
+            Function(std::shared_ptr<Token> start, const std::vector<std::shared_ptr<Type>> &param_types,
                      std::shared_ptr<Type> return_type)
                 : Type(start, return_type), param_types(param_types), return_type(return_type) {}
 
@@ -254,7 +257,7 @@ namespace spade::ast
             Argument(std::shared_ptr<Token> name, std::shared_ptr<Expression> expr)
                 : AstNode(name, expr), name(name), expr(expr) {}
 
-            Argument(std::shared_ptr<Expression> expr) : AstNode(expr, expr), name(null), expr(expr) {}
+            Argument(std::shared_ptr<Expression> expr) : AstNode(expr, expr), expr(expr) {}
 
             std::shared_ptr<Token> get_name() const {
                 return name;
@@ -269,6 +272,10 @@ namespace spade::ast
             std::vector<std::shared_ptr<Argument>> args;
 
           public:
+            Call(std::shared_ptr<Token> end, std::shared_ptr<Expression> caller,
+                 const std::vector<std::shared_ptr<Argument>> &args)
+                : Postfix(end, caller), args(args) {}
+
             const std::vector<std::shared_ptr<Argument>> &get_args() const {
                 return args;
             }
@@ -278,6 +285,10 @@ namespace spade::ast
             std::vector<std::shared_ptr<Type>> type_args;
 
           public:
+            Reify(std::shared_ptr<Token> end, std::shared_ptr<Expression> caller,
+                  const std::vector<std::shared_ptr<Type>> &type_args)
+                : Postfix(end, caller), type_args(type_args) {}
+
             const std::vector<std::shared_ptr<Type>> &get_type_args() const {
                 return type_args;
             }
@@ -294,9 +305,9 @@ namespace spade::ast
             std::shared_ptr<Expression> step;
 
           public:
-            Slice(std::shared_ptr<Token> start, std::shared_ptr<Token> end, Kind kind, std::shared_ptr<Expression> from,
+            Slice(int line_start, int line_end, int col_start, int col_end, Kind kind, std::shared_ptr<Expression> from,
                   std::shared_ptr<Expression> to, std::shared_ptr<Expression> step)
-                : AstNode(start, end), kind(kind), from(from), to(to), step(step) {}
+                : AstNode(line_start, line_end, col_start, col_end), kind(kind), from(from), to(to), step(step) {}
 
             Kind get_kind() const {
                 return kind;
@@ -316,13 +327,14 @@ namespace spade::ast
         };
 
         class Index : public Postfix {
-            std::vector<Slice> slices;
+            std::vector<std::shared_ptr<Slice>> slices;
 
           public:
-            Index(std::shared_ptr<Token> end, std::shared_ptr<Expression> caller, const std::vector<Slice> &slices)
+            Index(std::shared_ptr<Token> end, std::shared_ptr<Expression> caller,
+                  const std::vector<std::shared_ptr<Slice>> &slices)
                 : Postfix(end, caller), slices(std::move(slices)) {}
 
-            const std::vector<Slice> &get_slices() const {
+            const std::vector<std::shared_ptr<Slice>> &get_slices() const {
                 return slices;
             }
         };
@@ -368,37 +380,32 @@ namespace spade::ast
         class Binary : public Expression {
           protected:
             std::shared_ptr<Expression> left;
-            std::shared_ptr<Token> op;
+            std::shared_ptr<Token> op1;
+            std::shared_ptr<Token> op2;
             std::shared_ptr<Expression> right;
 
           public:
             Binary(std::shared_ptr<Expression> left, std::shared_ptr<Token> op, std::shared_ptr<Expression> right)
-                : Expression(left, right), left(left), op(op), right(right) {}
+                : Expression(left, right), left(left), op1(op), right(right) {}
+
+            Binary(std::shared_ptr<Expression> left, std::shared_ptr<Token> op1, std::shared_ptr<Token> op2,
+                   std::shared_ptr<Expression> right)
+                : Expression(left, right), left(left), op1(op1), op2(op2), right(right) {}
 
             std::shared_ptr<Expression> get_left() const {
                 return left;
             }
 
-            std::shared_ptr<Token> get_op() const {
-                return op;
+            std::shared_ptr<Token> get_op1() const {
+                return op1;
+            }
+
+            std::shared_ptr<Token> get_op2() const {
+                return op2;
             }
 
             std::shared_ptr<Expression> get_right() const {
                 return right;
-            }
-        };
-
-        class Binary2 : public Binary {
-          private:
-            std::shared_ptr<Token> op_extra;
-
-          public:
-            Binary2(std::shared_ptr<Expression> left, std::shared_ptr<Token> op, std::shared_ptr<Token> op_extra,
-                    std::shared_ptr<Expression> right)
-                : Binary(left, op, right), op_extra(op_extra) {}
-
-            std::shared_ptr<Token> get_op_extra() const {
-                return op_extra;
             }
         };
 

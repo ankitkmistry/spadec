@@ -1,7 +1,5 @@
 #pragma once
 
-#include <functional>
-
 #include "token.hpp"
 #include "utils/common.hpp"
 #include "utils/error.hpp"
@@ -27,13 +25,12 @@ namespace spade
 
         std::shared_ptr<Token> get_token(TokenType type);
         LexerError make_error(const string &msg) const;
+        void complete_float_part(std::function<bool(int)> validator, char exp1, char exp2);
 
       public:
-        explicit Lexer(std::FILE *stream);
+        explicit Lexer(string data) : data(std::move(data)) {}
 
-        void complete_float_part(std::function<bool(int)> validator, char exp1, char exp2);
         std::shared_ptr<Token> next_token();
-
         void pushback_token(std::shared_ptr<Token> token);
     };
 }    // namespace spade

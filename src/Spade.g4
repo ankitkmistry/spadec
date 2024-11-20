@@ -100,9 +100,6 @@ stmt
     | expr                                                  # exprStmt
     ;
 
-destructDecl: '[' destruct (',' destruct)* ','? ']';
-destruct: '*' IDENTIFIER ('['INTEGER?']')? | IDENTIFIER | '_';
-
 block: '{' (block | declaration | stmt)* '}';
 
 matchCase: WHEN items (IF expr)? '->' stmts;
@@ -139,12 +136,15 @@ assigneeList: assignee (',' assignee)* ','?;
 assignee: postfix | destructDecl;
 assignOperator: '='|'+='|'-='|'*='|'/='|'%='|'**='|'<<='|'>>='|'>>>='|'&='|'|='|'^='|'??=';
 
+destructDecl: '[' destruct (',' destruct)* ','? ']';
+destruct: '*' IDENTIFIER ('['INTEGER?']')? | IDENTIFIER | '_';
+
 // Postfix expression
 postfix: primary                   # postfixPrimary
     | postfix '?'? '.' IDENTIFIER  # postfixDot
     | postfix '(' args? ')'        # postfixCall
-    | postfix '[' typeArgs ']'    # postfixGeneric
     | postfix '[' indexer ']'      # postfixIndexer
+    | postfix '[' typeArgs ']'     # postfixGeneric
     | postfix block                # postfixBlock
     ;
 
@@ -157,9 +157,9 @@ slice: expr
 
 // Primary expressions
 primary: TRUE | FALSE | NULL | INTEGER | FLOAT | STRING | IDENTIFIER                       # constantExpr
-       | objectBuilder                 # builderExpr
+       | objectBuilder                  # builderExpr
        | SUPER ('[' reference ']')?     # superExpr
-       | SELF                         # thisExpr
+       | SELF                           # thisExpr
        | '(' (expr)  ')'                # groupExpr
        | '(' items? ')'                 # tupleExpr
        | '{' items '}'                  # setExpr

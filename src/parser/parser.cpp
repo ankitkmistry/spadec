@@ -17,7 +17,8 @@ namespace spade
     void Parser::fill_tokens_buffer(int n) {
         for (int i = 0; i < n; ++i) {
             auto token = lexer->next_token();
-            if (token->get_type() == TokenType::END_OF_FILE && tokens.back()->get_type() == TokenType::END_OF_FILE)
+            if (token->get_type() == TokenType::END_OF_FILE && !tokens.empty() &&
+                tokens.back()->get_type() == TokenType::END_OF_FILE)
                 break;    // Already EOF occured
             tokens.push_back(token);
         }
@@ -169,58 +170,56 @@ namespace spade
             auto expr = not_();
             return std::make_shared<ast::expr::Unary>(op, expr);
         }
-        auto expr = conditional();
-        return expr;
+        return conditional();
     }
 
     std::shared_ptr<ast::Expression> Parser::conditional() {
         auto left = relational();
-        while (true) {
-            switch (peek()->get_type()) {
-                case TokenType::IS: {
-                    auto op = advance();
-                    if (match(TokenType::NOT)) {
-                        auto op_extra = current();
-                        auto right = relational();
-                        left = std::make_shared<ast::expr::Binary2>(left, op, op_extra, right);
-                        break;
-                    }
-                    auto right = relational();
-                    left = std::make_shared<ast::expr::Binary>(left, op, right);
-                    break;
-                }
-                case TokenType::NOT: {
-                    auto op = advance();
-                    auto op_extra = expect(TokenType::IN);
-                    auto right = relational();
-                    left = std::make_shared<ast::expr::Binary2>(left, op, op_extra, right);
-                    break;
-                }
-                case TokenType::IN: {
-                    auto op = advance();
-                    auto right = relational();
-                    left = std::make_shared<ast::expr::Binary>(left, op, right);
-                    break;
-                }
-                default:
-                    return left;
-            }
+        std::shared_ptr<Token> op;
+        std::shared_ptr<Token> op_extra;
+        switch (peek()->get_type()) {
+            case TokenType::IS:
+                op = advance();
+                op_extra = match(TokenType::NOT);
+                break;
+            case TokenType::NOT:
+                op = advance();
+                op_extra = expect(TokenType::IN);
+                break;
+            case TokenType::IN:
+                op = advance();
+                break;
+            default:
+                break;
         }
+        if (op) {
+            auto right = relational();
+            left = std::make_shared<ast::expr::Binary>(left, op, op_extra, right);
+        }
+        return left;
     }
 
     std::shared_ptr<ast::Expression> Parser::relational() {
         std::vector<std::shared_ptr<ast::Expression>> exprs;
         std::vector<std::shared_ptr<Token>> ops;
-        exprs.push_back(bit_or());
-
-        while (match(TokenType::LT) || match(TokenType::LE) || match(TokenType::EQ) || match(TokenType::NE) ||
-               match(TokenType::GE) || match(TokenType::GT)) {
-            ops.push_back(current());
-            exprs.push_back(bit_or());
+        auto expr = bit_or();
+        while (true) {
+            switch (peek()->get_type()) {
+                case TokenType::LT:
+                case TokenType::LE:
+                case TokenType::EQ:
+                case TokenType::NE:
+                case TokenType::GE:
+                case TokenType::GT:
+                    ops.push_back(current());
+                    if (exprs.empty()) exprs.push_back(expr);
+                    exprs.push_back(bit_or());
+                    break;
+                default:
+                    if (exprs.empty()) return expr;
+                    return std::make_shared<ast::expr::ChainBinary>(exprs, ops);
+            }
         }
-
-        if (exprs.size() == 1) return exprs[0];
-        return std::make_shared<ast::expr::ChainBinary>(exprs, ops);
     }
 
     std::shared_ptr<ast::Expression> Parser::bit_or() {
@@ -319,13 +318,18 @@ namespace spade
     }
 
     std::shared_ptr<ast::Expression> Parser::unary() {
-        if (match(TokenType::BANG) || match(TokenType::TILDE) || match(TokenType::DASH) || match(TokenType::PLUS)) {
-            auto op = current();
-            auto expr = unary();
-            return std::make_shared<ast::expr::Unary>(op, expr);
+        switch (peek()->get_type()) {
+            case TokenType::BANG:
+            case TokenType::TILDE:
+            case TokenType::DASH:
+            case TokenType::PLUS: {
+                auto op = advance();
+                auto expr = unary();
+                return std::make_shared<ast::expr::Unary>(op, expr);
+            }
+            default:
+                return postfix();
         }
-        auto expr = postfix();
-        return expr;
     }
 
     std::shared_ptr<ast::Expression> Parser::postfix() {
@@ -340,10 +344,98 @@ namespace spade
                 auto member = expect(TokenType::IDENTIFIER);
                 return std::make_shared<ast::expr::DotAccess>(caller, member, safe);
             }
+            case TokenType::LPAREN: {
+                advance();
+                std::vector<std::shared_ptr<ast::expr::Argument>> args;
+                auto end = match(TokenType::RPAREN);
+                if (!end) {
+                    args = argument_list();
+                    end = expect(TokenType::RPAREN);
+                }
+                return std::make_shared<ast::expr::Call>(end, caller, args);
+            }
+            case TokenType::LBRACKET: {
+                advance();
+                return rule_or<ast::Expression, ast::expr::Index, ast::expr::Reify>(
+                        [&] {
+                            auto slices = slice_list();
+                            auto end = expect(TokenType::RBRACKET);
+                            return std::make_shared<ast::expr::Index>(end, caller, slices);
+                        },
+                        [&] {
+                            auto type_args = type_list();
+                            auto end = expect(TokenType::RBRACKET);
+                            return std::make_shared<ast::expr::Reify>(end, caller, type_args);
+                        });
+            }
             default:
                 break;
         }
         return caller;
+    }
+
+    std::shared_ptr<ast::expr::Argument> Parser::argument() {
+        std::shared_ptr<Token> name = match(TokenType::IDENTIFIER);
+        if (name && !match(TokenType::COLON)) {
+            return std::make_shared<ast::expr::Argument>(std::make_shared<ast::expr::Constant>(name));
+        }
+        auto expr = expression();
+        return name ? std::make_shared<ast::expr::Argument>(name, expr) : std::make_shared<ast::expr::Argument>(expr);
+    }
+
+    std::shared_ptr<ast::expr::Slice> Parser::slice() {
+        std::shared_ptr<ast::Expression> from = null;
+        std::shared_ptr<ast::Expression> to = null;
+        std::shared_ptr<ast::Expression> step = null;
+
+        if (peek()->get_type() != TokenType::COLON) from = expression();
+        std::shared_ptr<Token> c1 = match(TokenType::COLON);
+        if (c1 && peek()->get_type() != TokenType::COLON) to = rule_optional<ast::Expression>([&] { return expression(); });
+        std::shared_ptr<Token> c2 = match(TokenType::COLON);
+        if (c2) step = rule_optional<ast::Expression>([&] { return expression(); });
+
+        auto kind = ast::expr::Slice::Kind::SLICE;
+        if (from && !c1 && !to && !c2 && !step) kind = ast::expr::Slice::Kind::INDEX;
+
+        int line_start, col_start;
+        int line_end, col_end;
+        // Determine line, col starting
+        if (from) {
+            line_start = from->get_line_start();
+            col_start = from->get_col_start();
+        } else if (c1) {
+            line_start = c1->get_line();
+            col_start = c1->get_col();
+        } else if (to) {
+            line_start = to->get_line_start();
+            col_start = to->get_col_start();
+        } else if (c2) {
+            line_start = c2->get_line();
+            col_start = c2->get_col();
+        } else if (step) {
+            line_start = step->get_line_start();
+            col_start = step->get_col_start();
+        } else
+            throw error("expected ':', <expression>");
+        // Determine line, col ending
+        if (step) {
+            line_end = step->get_line_end();
+            col_end = step->get_col_end();
+        } else if (c2) {
+            line_end = c2->get_line();
+            col_end = c2->get_col();
+        } else if (to) {
+            line_end = to->get_line_end();
+            col_end = to->get_col_end();
+        } else if (c1) {
+            line_end = c1->get_line();
+            col_end = c1->get_col();
+        } else if (from) {
+            line_end = from->get_line_end();
+            col_end = from->get_col_end();
+        } else
+            throw error("expected ':', <expression>");
+        return std::make_shared<ast::expr::Slice>(line_start, line_end, col_start, col_end, kind, from, to, step);
     }
 
     std::shared_ptr<ast::Expression> Parser::primary() {
@@ -367,14 +459,20 @@ namespace spade
                 }
                 return std::make_shared<ast::expr::Super>(start, end, null);
             }
-
             case TokenType::SELF:
                 return std::make_shared<ast::expr::Self>(advance());
+            case TokenType::LPAREN: {
+                advance();
+                auto expr = expression();
+                expect(TokenType::RPAREN);
+                return expr;
+            }
             default:
-                throw error(std::format("expected {}",
-                                        make_expected_string(TokenType::TRUE, TokenType::FALSE, TokenType::NULL_,
-                                                             TokenType::INTEGER, TokenType::FLOAT, TokenType::STRING,
-                                                             TokenType::IDENTIFIER, TokenType::SUPER, TokenType::SELF)));
+                throw error(
+                        std::format("expected {}", make_expected_string(TokenType::TRUE, TokenType::FALSE, TokenType::NULL_,
+                                                                        TokenType::INTEGER, TokenType::FLOAT, TokenType::STRING,
+                                                                        TokenType::IDENTIFIER, TokenType::SUPER,
+                                                                        TokenType::SELF, TokenType::LPAREN)));
         }
     }
 
@@ -475,6 +573,30 @@ namespace spade
         list.push_back(expression());
         while (match(TokenType::COMMA)) {
             if (auto item = rule_optional<ast::Expression>([this] { return expression(); })) {
+                list.push_back(item);
+            } else
+                break;
+        }
+        return list;
+    }
+
+    std::vector<std::shared_ptr<ast::expr::Argument>> Parser::argument_list() {
+        std::vector<std::shared_ptr<ast::expr::Argument>> list;
+        list.push_back(argument());
+        while (match(TokenType::COMMA)) {
+            if (auto item = rule_optional<ast::expr::Argument>([this] { return argument(); })) {
+                list.push_back(item);
+            } else
+                break;
+        }
+        return list;
+    }
+
+    std::vector<std::shared_ptr<ast::expr::Slice>> Parser::slice_list() {
+        std::vector<std::shared_ptr<ast::expr::Slice>> list;
+        list.push_back(slice());
+        while (match(TokenType::COMMA)) {
+            if (auto item = rule_optional<ast::expr::Slice>([this] { return slice(); })) {
                 list.push_back(item);
             } else
                 break;

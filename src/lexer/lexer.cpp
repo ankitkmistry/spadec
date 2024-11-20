@@ -45,18 +45,6 @@ namespace spade
         return {msg, line, col};
     }
 
-    Lexer::Lexer(std::FILE *stream) {
-        if (stream) {
-            fseek(stream, 0, SEEK_END);
-            size_t length = ftell(stream);
-            fseek(stream, 0, SEEK_SET);
-            if (auto buffer = new char[length]) {
-                auto num_written = fread(buffer, 1, length, stream);
-                data = string(buffer, num_written);
-            }
-        }
-    }
-
     static bool is_binary_digit(int c) {
         return c == '0' || c == '1';
     }

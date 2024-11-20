@@ -32,6 +32,7 @@
 #include <stack>
 #include <memory>
 #include <format>
+#include <functional>
 
 #define null (nullptr)
 

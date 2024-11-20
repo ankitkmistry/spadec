@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+
 #include "common.hpp"
 #include "error.hpp"
 
@@ -63,5 +65,25 @@ namespace spade
     template<class T, class V>
     bool is(std::shared_ptr<V> obj) {
         return std::dynamic_pointer_cast<T>(obj) != null;
+    }
+
+    template<typename T, StringConvertible C>
+    string join(const std::vector<T> &vec, const string &delimiter, std::function<C(T)> converter) {
+        std::stringstream ss;
+        for (int i = 0; i < vec.size(); ++i) {
+            ss << converter(vec[i]);
+            if (i < vec.size() - 1) ss << delimiter;
+        }
+        return ss.str();
+    }
+
+    template<typename T>
+    string join(const std::vector<T> &vec, const string &delimiter, std::function<string(T)> converter) {
+        std::stringstream ss;
+        for (int i = 0; i < vec.size(); ++i) {
+            ss << converter(vec[i]);
+            if (i < vec.size() - 1) ss << delimiter;
+        }
+        return ss.str();
     }
 }    // namespace spade

@@ -63,9 +63,10 @@ namespace spade
         std::shared_ptr<ast::Reference> reference();
 
         // Expressions
-    public:
+      public:
         std::shared_ptr<ast::Expression> expression();
-    private:
+
+      private:
         std::shared_ptr<ast::Expression> assignment();
         std::shared_ptr<ast::Expression> ternary();
         // Binary
@@ -87,6 +88,8 @@ namespace spade
         std::shared_ptr<ast::Expression> unary();
         // Postfix
         std::shared_ptr<ast::Expression> postfix();
+        std::shared_ptr<ast::expr::Argument> argument();
+        std::shared_ptr<ast::expr::Slice> slice();
         // Primary
         std::shared_ptr<ast::Expression> primary();
 
@@ -100,6 +103,8 @@ namespace spade
         std::vector<std::shared_ptr<ast::Type>> type_list();
         std::vector<std::shared_ptr<ast::Expression>> assignee_list();
         std::vector<std::shared_ptr<ast::Expression>> expr_list();
+        std::vector<std::shared_ptr<ast::expr::Argument>> argument_list();
+        std::vector<std::shared_ptr<ast::expr::Slice>> slice_list();
 
       public:
         explicit Parser(Lexer *lexer) : lexer(lexer) {}
