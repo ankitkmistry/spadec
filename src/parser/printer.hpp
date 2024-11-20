@@ -8,7 +8,7 @@
 
 namespace spade::ast
 {
-    class Printer final {
+    class Printer final : public VisitorBase {
       private:
         int level = 0;
         std::stringstream ss;
@@ -27,36 +27,14 @@ namespace spade::ast
         void start_level();
         void end_level();
 
-        void write_repr(const std::shared_ptr<AstNode> &node);
-        void write_repr(const std::shared_ptr<Reference> &node);
-        void write_repr(const std::shared_ptr<type::Reference> &node);
-        void write_repr(const std::shared_ptr<type::Function> &node);
-        void write_repr(const std::shared_ptr<type::TypeLiteral> &node);
-        void write_repr(const std::shared_ptr<type::TypeOf> &node);
-        void write_repr(const std::shared_ptr<type::BinaryOp> &node);
-        void write_repr(const std::shared_ptr<type::Nullable> &node);
-        void write_repr(const std::shared_ptr<expr::Constant> &node);
-        void write_repr(const std::shared_ptr<expr::Super> &node);
-        void write_repr(const std::shared_ptr<expr::Self> &node);
-        void write_repr(const std::shared_ptr<expr::DotAccess> &node);
-        void write_repr(const std::shared_ptr<expr::Argument> &node);
-        void write_repr(const std::shared_ptr<expr::Call> &node);
-        void write_repr(const std::shared_ptr<expr::Reify> &node);
-        void write_repr(const std::shared_ptr<expr::Slice> &node);
-        void write_repr(const std::shared_ptr<expr::Index> &node);
-        void write_repr(const std::shared_ptr<expr::Unary> &node);
-        void write_repr(const std::shared_ptr<expr::Cast> &node);
-        void write_repr(const std::shared_ptr<expr::Binary> &node);
-        void write_repr(const std::shared_ptr<expr::ChainBinary> &node);
-        void write_repr(const std::shared_ptr<expr::Ternary> &node);
-        void write_repr(const std::shared_ptr<expr::Assignment> &node);
+        void write_repr(const AstNode *node);
 
         void print(const std::shared_ptr<Token> &token, const string &name);
         void print(const std::shared_ptr<AstNode> &node, const string &name = "");
 
         template<typename T>
             requires std::derived_from<T, AstNode>
-        void print(const std::vector<std::shared_ptr<T>> vec, const string &name = "") {
+        void print(const std::vector<std::shared_ptr<T>> &vec, const string &name = "") {
             start_level();
             ss << leading_conv(level);
             if (!name.empty()) ss << name << ": ";
@@ -73,7 +51,7 @@ namespace spade::ast
             end_level();
         }
 
-        void print(const std::vector<std::shared_ptr<Token>> vec, const string &name = "") {
+        void print(const std::vector<std::shared_ptr<Token>> &vec, const string &name = "") {
             start_level();
             ss << leading_conv(level);
             if (!name.empty()) ss << name << ": ";
@@ -109,5 +87,44 @@ namespace spade::ast
         void set_root(std::shared_ptr<AstNode> root) {
             this->root = root;
         }
+
+      protected:
+        void visit(Reference &node) override;
+        void visit(expr::Argument &node) override;
+        void visit(expr::Slice &node) override;
+
+        void visit(type::Reference &type) override;
+        void visit(type::Function &type) override;
+        void visit(type::TypeLiteral &type) override;
+        void visit(type::TypeOf &type) override;
+        void visit(type::BinaryOp &type) override;
+        void visit(type::Nullable &type) override;
+
+        void visit(expr::Constant &expr) override;
+        void visit(expr::Super &expr) override;
+        void visit(expr::Self &expr) override;
+        void visit(expr::DotAccess &expr) override;
+        void visit(expr::Call &expr) override;
+        void visit(expr::Reify &expr) override;
+        void visit(expr::Index &expr) override;
+        void visit(expr::Unary &expr) override;
+        void visit(expr::Cast &expr) override;
+        void visit(expr::Binary &expr) override;
+        void visit(expr::ChainBinary &expr) override;
+        void visit(expr::Ternary &expr) override;
+        void visit(expr::Assignment &expr) override;
+
+        void visit(stmt::Block &stmt) override;
+        void visit(stmt::If &stmt) override;
+        void visit(stmt::While &stmt) override;
+        void visit(stmt::DoWhile &stmt) override;
+        void visit(stmt::Throw &stmt) override;
+        void visit(stmt::Catch &stmt) override;
+        void visit(stmt::Try &stmt) override;
+        void visit(stmt::Continue &stmt) override;
+        void visit(stmt::Break &stmt) override;
+        void visit(stmt::Return &stmt) override;
+        void visit(stmt::Yield &stmt) override;
+        void visit(stmt::Expr &stmt) override;
     };
 }    // namespace spade::ast

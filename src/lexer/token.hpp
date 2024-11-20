@@ -185,6 +185,32 @@ namespace spade
         void set_col(int col) {
             this->col = col;
         }
+
+        int get_line_start() const {
+            return line;
+        }
+
+        int get_col_start() const {
+            return col;
+        }
+
+        int get_line_end() const {
+            int res = line;
+            for (auto c: text) {
+                if (c == '\n') res++;
+            }
+            return res;
+        }
+
+        int get_col_end() const {
+            int res = col;
+            for (auto c: text) {
+                if (c == '\n') res = 0;
+                else
+                    res++;
+            }
+            return res;
+        }
     };
 
     std::shared_ptr<Token> make_token(TokenType type, const string &text, int line, int col);

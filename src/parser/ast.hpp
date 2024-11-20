@@ -1,14 +1,101 @@
 #pragma once
 
-#include <ostream>
-
 #include "utils/common.hpp"
 #include "lexer/token.hpp"
 #include "utils/utils.hpp"
 
 namespace spade::ast
 {
+    class Reference;
+    class AstNode;
     class Expression;
+
+    namespace expr
+    {
+        class Slice;
+        class Argument;
+        class Assignment;
+        class Ternary;
+        class ChainBinary;
+        class Binary;
+        class Cast;
+        class Unary;
+        class Index;
+        class Reify;
+        class Call;
+        class DotAccess;
+        class Self;
+        class Super;
+        class Constant;
+    }    // namespace expr
+
+    namespace type
+    {
+        class Nullable;
+        class BinaryOp;
+        class TypeOf;
+        class TypeLiteral;
+        class Function;
+        class Reference;
+    }    // namespace type
+
+    namespace stmt
+    {
+        class Expr;
+        class Yield;
+        class Return;
+        class Break;
+        class Continue;
+        class Try;
+        class Catch;
+        class Throw;
+        class DoWhile;
+        class While;
+        class If;
+        class Block;
+    }    // namespace stmt
+
+    class VisitorBase {
+      public:
+        virtual ~VisitorBase() = default;
+        virtual void visit(Reference &node) = 0;
+        virtual void visit(expr::Argument &node) = 0;
+        virtual void visit(expr::Slice &node) = 0;
+        // Type visitor
+        virtual void visit(type::Reference &node) = 0;
+        virtual void visit(type::Function &node) = 0;
+        virtual void visit(type::TypeLiteral &node) = 0;
+        virtual void visit(type::TypeOf &node) = 0;
+        virtual void visit(type::BinaryOp &node) = 0;
+        virtual void visit(type::Nullable &node) = 0;
+        // Expression visitor
+        virtual void visit(expr::Constant &node) = 0;
+        virtual void visit(expr::Super &node) = 0;
+        virtual void visit(expr::Self &node) = 0;
+        virtual void visit(expr::DotAccess &node) = 0;
+        virtual void visit(expr::Call &node) = 0;
+        virtual void visit(expr::Reify &node) = 0;
+        virtual void visit(expr::Index &node) = 0;
+        virtual void visit(expr::Unary &node) = 0;
+        virtual void visit(expr::Cast &node) = 0;
+        virtual void visit(expr::Binary &node) = 0;
+        virtual void visit(expr::ChainBinary &node) = 0;
+        virtual void visit(expr::Ternary &node) = 0;
+        virtual void visit(expr::Assignment &node) = 0;
+        // Statement visitor
+        virtual void visit(stmt::Block &node) = 0;
+        virtual void visit(stmt::If &node) = 0;
+        virtual void visit(stmt::While &node) = 0;
+        virtual void visit(stmt::DoWhile &node) = 0;
+        virtual void visit(stmt::Throw &node) = 0;
+        virtual void visit(stmt::Catch &node) = 0;
+        virtual void visit(stmt::Try &node) = 0;
+        virtual void visit(stmt::Continue &node) = 0;
+        virtual void visit(stmt::Break &node) = 0;
+        virtual void visit(stmt::Return &node) = 0;
+        virtual void visit(stmt::Yield &node) = 0;
+        virtual void visit(stmt::Expr &node) = 0;
+    };
 
     class AstNode {
       protected:
@@ -22,7 +109,10 @@ namespace spade::ast
             : line_start(line_start), line_end(line_end), col_start(col_start), col_end(col_end) {}
 
         AstNode(std::shared_ptr<Token> start, std::shared_ptr<Token> end)
-            : line_start(start->get_line()), line_end(end->get_line()), col_start(start->get_col()), col_end(end->get_col()) {}
+            : line_start(start->get_line_start()),
+              line_end(end->get_line_end()),
+              col_start(start->get_col_start()),
+              col_end(end->get_col_end()) {}
 
         AstNode(std::shared_ptr<AstNode> start, std::shared_ptr<AstNode> end)
             : line_start(start->get_line_start()),
@@ -31,22 +121,24 @@ namespace spade::ast
               col_end(end->get_col_end()) {}
 
         AstNode(std::shared_ptr<Token> start, std::shared_ptr<AstNode> end)
-            : line_start(start->get_line()),
+            : line_start(start->get_line_start()),
               line_end(end->get_line_end()),
-              col_start(start->get_col()),
+              col_start(start->get_col_start()),
               col_end(end->get_col_end()) {}
 
         AstNode(std::shared_ptr<AstNode> start, std::shared_ptr<Token> end)
             : line_start(start->get_line_start()),
-              line_end(end->get_line()),
+              line_end(end->get_line_end()),
               col_start(start->get_col_start()),
-              col_end(end->get_col()) {}
+              col_end(end->get_col_end()) {}
 
         AstNode(const AstNode &other) = default;
         AstNode(AstNode &&other) noexcept = default;
         AstNode &operator=(const AstNode &other) = default;
         AstNode &operator=(AstNode &&other) noexcept = default;
         virtual ~AstNode() = default;
+
+        virtual void accept(VisitorBase *visitor) = 0;
 
         int get_line_start() const {
             return line_start;
@@ -73,6 +165,10 @@ namespace spade::ast
 
         const std::vector<std::shared_ptr<Token>> &get_path() const {
             return path;
+        }
+
+        void accept(VisitorBase *visitor) override {
+            visitor->visit(*this);
         }
     };
 
@@ -107,6 +203,10 @@ namespace spade::ast
             const std::vector<std::shared_ptr<Type>> &get_type_args() const {
                 return type_args;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Function : public Type {
@@ -125,11 +225,19 @@ namespace spade::ast
             std::shared_ptr<Type> get_return_type() const {
                 return return_type;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class TypeLiteral : public Type {
           public:
             TypeLiteral(std::shared_ptr<Token> token) : Type(token, token) {}
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class TypeOf : public Type {
@@ -141,6 +249,10 @@ namespace spade::ast
 
             std::shared_ptr<Expression> get_expr() const {
                 return expr;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
 
@@ -164,6 +276,10 @@ namespace spade::ast
             std::shared_ptr<Type> get_right() const {
                 return right;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Nullable : public Type {
@@ -174,6 +290,10 @@ namespace spade::ast
 
             std::shared_ptr<Type> get_type() const {
                 return type;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
     }    // namespace type
@@ -200,6 +320,10 @@ namespace spade::ast
             std::shared_ptr<Token> get_token() const {
                 return token;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Super : public Expression {
@@ -212,11 +336,19 @@ namespace spade::ast
             std::shared_ptr<Reference> get_reference() const {
                 return reference;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Self : public Expression {
           public:
             Self(std::shared_ptr<Token> self) : Expression(self, self) {}
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Postfix : public Expression {
@@ -247,6 +379,10 @@ namespace spade::ast
             std::shared_ptr<Token> get_safe() const {
                 return safe;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Argument : public AstNode {
@@ -266,6 +402,10 @@ namespace spade::ast
             std::shared_ptr<Expression> get_expr() const {
                 return expr;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Call : public Postfix {
@@ -279,6 +419,10 @@ namespace spade::ast
             const std::vector<std::shared_ptr<Argument>> &get_args() const {
                 return args;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Reify : public Postfix {
@@ -291,6 +435,10 @@ namespace spade::ast
 
             const std::vector<std::shared_ptr<Type>> &get_type_args() const {
                 return type_args;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
 
@@ -324,6 +472,10 @@ namespace spade::ast
             std::shared_ptr<Expression> get_step() const {
                 return step;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Index : public Postfix {
@@ -336,6 +488,10 @@ namespace spade::ast
 
             const std::vector<std::shared_ptr<Slice>> &get_slices() const {
                 return slices;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
 
@@ -352,6 +508,10 @@ namespace spade::ast
 
             std::shared_ptr<Expression> get_expr() const {
                 return expr;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
 
@@ -374,6 +534,10 @@ namespace spade::ast
 
             std::shared_ptr<Type> get_type() const {
                 return type;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
 
@@ -407,6 +571,10 @@ namespace spade::ast
             std::shared_ptr<Expression> get_right() const {
                 return right;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class ChainBinary : public Expression {
@@ -423,6 +591,10 @@ namespace spade::ast
 
             const std::vector<std::shared_ptr<Token>> &get_ops() const {
                 return ops;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
 
@@ -446,6 +618,10 @@ namespace spade::ast
 
             std::shared_ptr<Expression> get_on_false() const {
                 return on_false;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
 
@@ -475,6 +651,10 @@ namespace spade::ast
             const std::vector<std::shared_ptr<Expression>> &get_exprs() const {
                 return exprs;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
     }    // namespace expr
 
@@ -502,6 +682,10 @@ namespace spade::ast
             const std::vector<std::shared_ptr<Statement>> &get_statements() const {
                 return statements;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class If : public Statement {
@@ -524,6 +708,10 @@ namespace spade::ast
 
             std::shared_ptr<Statement> get_else_body() const {
                 return else_body;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
 
@@ -548,6 +736,10 @@ namespace spade::ast
             std::shared_ptr<Statement> get_else_body() const {
                 return else_body;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class DoWhile : public Statement {
@@ -571,6 +763,10 @@ namespace spade::ast
             std::shared_ptr<Statement> get_else_body() const {
                 return else_body;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Throw : public Statement {
@@ -582,6 +778,10 @@ namespace spade::ast
 
             std::shared_ptr<Expression> get_expression() const {
                 return expression;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
 
@@ -606,6 +806,10 @@ namespace spade::ast
             std::shared_ptr<Statement> get_body() const {
                 return body;
             }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Try : public Statement {
@@ -617,16 +821,40 @@ namespace spade::ast
             Try(std::shared_ptr<Token> token, std::shared_ptr<Statement> body,
                 const std::vector<std::shared_ptr<Statement>> &catches, std::shared_ptr<Statement> finally)
                 : Statement(token, finally ? finally : catches.back()), body(body), catches(catches), finally(finally) {}
+
+            std::shared_ptr<Statement> get_body() const {
+                return body;
+            }
+
+            const std::vector<std::shared_ptr<Statement>> &get_catches() const {
+                return catches;
+            }
+
+            std::shared_ptr<Statement> get_finally() const {
+                return finally;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Continue : public Statement {
           public:
             Continue(std::shared_ptr<Token> token) : Statement(token, token) {}
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Break : public Statement {
           public:
             Break(std::shared_ptr<Token> token) : Statement(token, token) {}
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Return : public Statement {
@@ -635,6 +863,14 @@ namespace spade::ast
           public:
             Return(std::shared_ptr<Token> token, std::shared_ptr<Expression> expression)
                 : Statement(token, expression), expression(expression) {}
+
+            std::shared_ptr<Expression> get_expression() const {
+                return expression;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Yield : public Statement {
@@ -643,6 +879,14 @@ namespace spade::ast
           public:
             Yield(std::shared_ptr<Token> token, std::shared_ptr<Expression> expression)
                 : Statement(token, expression), expression(expression) {}
+
+            std::shared_ptr<Expression> get_expression() const {
+                return expression;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
         };
 
         class Expr : public Statement {
@@ -653,6 +897,10 @@ namespace spade::ast
 
             std::shared_ptr<Expression> get_expression() const {
                 return expression;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
             }
         };
     }    // namespace stmt
