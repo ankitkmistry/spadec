@@ -477,4 +477,183 @@ namespace spade::ast
             }
         };
     }    // namespace expr
+
+    class Statement : public AstNode {
+      public:
+        Statement(std::shared_ptr<Token> start, std::shared_ptr<Token> end) : AstNode(start, end) {}
+
+        Statement(std::shared_ptr<AstNode> start, std::shared_ptr<AstNode> end) : AstNode(start, end) {}
+
+        Statement(std::shared_ptr<Token> start, std::shared_ptr<AstNode> end) : AstNode(start, end) {}
+
+        Statement(std::shared_ptr<AstNode> start, std::shared_ptr<Token> end) : AstNode(start, end) {}
+    };
+
+    namespace stmt
+    {
+        class Block : public Statement {
+            std::vector<std::shared_ptr<Statement>> statements;
+
+          public:
+            Block(std::shared_ptr<Token> start, std::shared_ptr<Token> end,
+                  const std::vector<std::shared_ptr<Statement>> &statements)
+                : Statement(start, end), statements(statements) {}
+
+            const std::vector<std::shared_ptr<Statement>> &get_statements() const {
+                return statements;
+            }
+        };
+
+        class If : public Statement {
+            std::shared_ptr<Expression> condition;
+            std::shared_ptr<Statement> body;
+            std::shared_ptr<Statement> else_body;
+
+          public:
+            If(std::shared_ptr<Token> token, std::shared_ptr<Expression> condition, std::shared_ptr<Statement> body,
+               std::shared_ptr<Statement> else_body)
+                : Statement(token, else_body ? else_body : body), condition(condition), body(body), else_body(else_body) {}
+
+            std::shared_ptr<Expression> get_condition() const {
+                return condition;
+            }
+
+            std::shared_ptr<Statement> get_body() const {
+                return body;
+            }
+
+            std::shared_ptr<Statement> get_else_body() const {
+                return else_body;
+            }
+        };
+
+        class While : public Statement {
+            std::shared_ptr<Expression> condition;
+            std::shared_ptr<Statement> body;
+            std::shared_ptr<Statement> else_body;
+
+          public:
+            While(std::shared_ptr<Token> token, std::shared_ptr<Expression> condition, std::shared_ptr<Statement> body,
+                  std::shared_ptr<Statement> else_body)
+                : Statement(token, else_body ? else_body : body), condition(condition), body(body), else_body(else_body) {}
+
+            std::shared_ptr<Expression> get_condition() const {
+                return condition;
+            }
+
+            std::shared_ptr<Statement> get_body() const {
+                return body;
+            }
+
+            std::shared_ptr<Statement> get_else_body() const {
+                return else_body;
+            }
+        };
+
+        class DoWhile : public Statement {
+            std::shared_ptr<Statement> body;
+            std::shared_ptr<Expression> condition;
+            std::shared_ptr<Statement> else_body;
+
+          public:
+            DoWhile(std::shared_ptr<Token> token, std::shared_ptr<Statement> body, std::shared_ptr<Expression> condition,
+                    std::shared_ptr<Statement> else_body)
+                : Statement(token, else_body ? else_body : body), body(body), condition(condition), else_body(else_body) {}
+
+            std::shared_ptr<Expression> get_condition() const {
+                return condition;
+            }
+
+            std::shared_ptr<Statement> get_body() const {
+                return body;
+            }
+
+            std::shared_ptr<Statement> get_else_body() const {
+                return else_body;
+            }
+        };
+
+        class Throw : public Statement {
+            std::shared_ptr<Expression> expression;
+
+          public:
+            Throw(std::shared_ptr<Token> token, std::shared_ptr<Expression> expression)
+                : Statement(token, expression), expression(expression) {}
+
+            std::shared_ptr<Expression> get_expression() const {
+                return expression;
+            }
+        };
+
+        class Catch : public Statement {
+            std::vector<std::shared_ptr<Reference>> references;
+            std::shared_ptr<Token> symbol;
+            std::shared_ptr<Statement> body;
+
+          public:
+            Catch(std::shared_ptr<Token> token, const std::vector<std::shared_ptr<Reference>> &references,
+                  std::shared_ptr<Token> symbol, std::shared_ptr<Statement> body)
+                : Statement(token, body), references(references), symbol(symbol), body(body) {}
+
+            const std::vector<std::shared_ptr<Reference>> &get_references() const {
+                return references;
+            }
+
+            std::shared_ptr<Token> get_symbol() const {
+                return symbol;
+            }
+
+            std::shared_ptr<Statement> get_body() const {
+                return body;
+            }
+        };
+
+        class Try : public Statement {
+            std::shared_ptr<Statement> body;
+            std::vector<std::shared_ptr<Statement>> catches;
+            std::shared_ptr<Statement> finally;
+
+          public:
+            Try(std::shared_ptr<Token> token, std::shared_ptr<Statement> body,
+                const std::vector<std::shared_ptr<Statement>> &catches, std::shared_ptr<Statement> finally)
+                : Statement(token, finally ? finally : catches.back()), body(body), catches(catches), finally(finally) {}
+        };
+
+        class Continue : public Statement {
+          public:
+            Continue(std::shared_ptr<Token> token) : Statement(token, token) {}
+        };
+
+        class Break : public Statement {
+          public:
+            Break(std::shared_ptr<Token> token) : Statement(token, token) {}
+        };
+
+        class Return : public Statement {
+            std::shared_ptr<Expression> expression;
+
+          public:
+            Return(std::shared_ptr<Token> token, std::shared_ptr<Expression> expression)
+                : Statement(token, expression), expression(expression) {}
+        };
+
+        class Yield : public Statement {
+            std::shared_ptr<Expression> expression;
+
+          public:
+            Yield(std::shared_ptr<Token> token, std::shared_ptr<Expression> expression)
+                : Statement(token, expression), expression(expression) {}
+        };
+
+        class Expr : public Statement {
+            std::shared_ptr<Expression> expression;
+
+          public:
+            explicit Expr(std::shared_ptr<Expression> expression) : Statement(expression, expression), expression(expression) {}
+
+            std::shared_ptr<Expression> get_expression() const {
+                return expression;
+            }
+        };
+    }    // namespace stmt
 }    // namespace spade::ast

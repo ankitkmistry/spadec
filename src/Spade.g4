@@ -81,20 +81,19 @@ name: IDENTIFIER (':' type)? | destructDecl;
 // Statement
 stmts: stmt sep | block;
 stmt
-    : IF expr body else?                                  # ifStmt
-    | WHILE expr body else?                               # whileStmt
-    | DO block WHILE expr else?                           # doStmt
-    | FOR (varDecl | expr) ';' expr ';' expr body else?               # forStmt
-    | FOR IDENTIFIER IN postfix body else?                # foreachStmt
+    : IF expr body (ELSE body)?                                  # ifStmt
+    | WHILE expr body (ELSE body)?                               # whileStmt
+    | DO block WHILE expr (ELSE body)?                           # doStmt
+    | FOR destruct IN postfix body (ELSE body)?                # forStmt
     | MATCH expr '{'
         matchCase*
         (ELSE '->' stmts)?
       '}'                                                   # matchStmt
-    | THROW expr                                            # throwStmt
-    | TRY block (catchStmt+ finallyStmt? | finallyStmt)     # tryStmt
+    | TRY body (catchStmt+ finallyStmt? | finallyStmt)     # tryStmt
     | CONTINUE                                              # continueStmt
     | BREAK                                                 # breakStmt
-    | RETURN stmts                                          # returnStmt
+    | THROW expr                                            # throwStmt
+    | RETURN expr                                          # returnStmt
     | YIELD expr                                            # yieldStmt
     | '...'                                                 # noStmt
     | expr                                                  # exprStmt
@@ -104,11 +103,10 @@ block: '{' (block | declaration | stmt)* '}';
 
 matchCase: WHEN items (IF expr)? '->' stmts;
 
-catchStmt: CATCH typeList (AS IDENTIFIER)? block;
-finallyStmt: FINALLY block;
+catchStmt: CATCH refList (AS IDENTIFIER)? body;
+finallyStmt: FINALLY body;
 
 body: ':' stmt sep | block;
-else: ELSE body;
 
 // Expression
 expr
@@ -307,8 +305,8 @@ WS: [ \t\f]+ -> skip;
 NEWLINE: '\r'? '\n' -> channel(HIDDEN);
 
 BLOCK_COMMENT
-	: '/*' .*? '*/' -> skip
-	;
+    : '/*' .*? '*/' -> skip
+    ;
 LINE_COMMENT
-	: '//' ~[\r\n]* -> skip
-	;
+    : '//' ~[\r\n]* -> skip
+    ;

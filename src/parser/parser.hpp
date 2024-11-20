@@ -62,11 +62,22 @@ namespace spade
         // Parser rules
         std::shared_ptr<ast::Reference> reference();
 
-        // Expressions
+        // Statements
+        std::shared_ptr<ast::Statement> statements();
+        std::shared_ptr<ast::Statement> block();
+
       public:
-        std::shared_ptr<ast::Expression> expression();
+        std::shared_ptr<ast::Statement> statement();
 
       private:
+        std::shared_ptr<ast::Statement> if_stmt();
+        std::shared_ptr<ast::Statement> while_stmt();
+        std::shared_ptr<ast::Statement> do_while_stmt();
+        std::shared_ptr<ast::Statement> try_stmt();
+        std::shared_ptr<ast::Statement> catch_stmt();
+
+        // Expressions
+        std::shared_ptr<ast::Expression> expression();
         std::shared_ptr<ast::Expression> assignment();
         std::shared_ptr<ast::Expression> ternary();
         // Binary
@@ -100,11 +111,14 @@ namespace spade
         std::shared_ptr<ast::Type> nullable_type();
         std::shared_ptr<ast::Type> primary_type();
 
+        // Comma separated lists
         std::vector<std::shared_ptr<ast::Type>> type_list();
         std::vector<std::shared_ptr<ast::Expression>> assignee_list();
         std::vector<std::shared_ptr<ast::Expression>> expr_list();
         std::vector<std::shared_ptr<ast::expr::Argument>> argument_list();
         std::vector<std::shared_ptr<ast::expr::Slice>> slice_list();
+        std::vector<std::shared_ptr<ast::Reference>> reference_list();
+
 
       public:
         explicit Parser(Lexer *lexer) : lexer(lexer) {}

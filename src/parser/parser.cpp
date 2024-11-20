@@ -91,6 +91,116 @@ namespace spade
         return std::make_shared<ast::Reference>(path);
     }
 
+    std::shared_ptr<ast::Statement> Parser::statements() {
+        if (peek()->get_type() == TokenType::LBRACE) return block();
+        return statement();
+    }
+
+    std::shared_ptr<ast::Statement> Parser::block() {
+        auto start = expect(TokenType::LBRACE);
+        std::vector<std::shared_ptr<ast::Statement>> stmts;
+        while (true) {
+            if (auto stmt = rule_optional<ast::Statement>([&] { return statement(); })) {
+                stmts.push_back(stmt);
+            } else
+                break;
+        }
+        auto end = expect(TokenType::RBRACE);
+        return std::make_shared<ast::stmt::Block>(start, end, stmts);
+    }
+
+    std::shared_ptr<ast::Statement> Parser::statement() {
+        switch (peek()->get_type()) {
+            case TokenType::IF:
+                return if_stmt();
+            case TokenType::WHILE:
+                return while_stmt();
+            case TokenType::DO:
+                return do_while_stmt();
+            case TokenType::TRY:
+                return try_stmt();
+            case TokenType::CONTINUE:
+                return std::make_shared<ast::stmt::Continue>(advance());
+            case TokenType::BREAK:
+                return std::make_shared<ast::stmt::Break>(advance());
+            case TokenType::THROW: {
+                auto token = advance();
+                auto expr = expression();
+                return std::make_shared<ast::stmt::Throw>(token, expr);
+            }
+            case TokenType::RETURN: {
+                auto token = advance();
+                auto expr = expression();
+                return std::make_shared<ast::stmt::Return>(token, expr);
+            }
+            case TokenType::YIELD: {
+                auto token = advance();
+                auto expr = expression();
+                return std::make_shared<ast::stmt::Yield>(token, expr);
+            }
+            default: {
+                int tok_idx = index;
+                try {
+                    return std::make_shared<ast::stmt::Expr>(expression());
+                } catch (const ParserError &) {
+                    index = tok_idx;
+                    throw error("expected a statement or expression");
+                }
+            }
+        }
+    }
+
+#define BODY() (match(TokenType::COLON) ? statement() : block())
+
+    std::shared_ptr<ast::Statement> Parser::if_stmt() {
+        auto token = expect(TokenType::IF);
+        auto expr = expression();
+        auto body = BODY();
+        auto else_body = match(TokenType::ELSE) ? BODY() : null;
+        return std::make_shared<ast::stmt::If>(token, expr, body, else_body);
+    }
+
+    std::shared_ptr<ast::Statement> Parser::while_stmt() {
+        auto token = expect(TokenType::WHILE);
+        auto expr = expression();
+        auto body = BODY();
+        auto else_body = match(TokenType::ELSE) ? BODY() : null;
+        return std::make_shared<ast::stmt::While>(token, expr, body, else_body);
+    }
+
+    std::shared_ptr<ast::Statement> Parser::do_while_stmt() {
+        auto token = expect(TokenType::DO);
+        auto body = block();
+        expect(TokenType::WHILE);
+        auto expr = expression();
+        auto else_body = match(TokenType::ELSE) ? BODY() : null;
+        return std::make_shared<ast::stmt::DoWhile>(token, body, expr, else_body);
+    }
+
+    std::shared_ptr<ast::Statement> Parser::try_stmt() {
+        auto token = expect(TokenType::TRY);
+        auto body = BODY();
+        std::shared_ptr<ast::Statement> finally;
+        std::vector<std::shared_ptr<ast::Statement>> catches;
+        if (match(TokenType::FINALLY)) finally = BODY();
+        else {
+            do {
+                catches.push_back(catch_stmt());
+            } while (peek()->get_type() == TokenType::CATCH);
+            if (match(TokenType::FINALLY)) finally = BODY();
+        }
+        return std::make_shared<ast::stmt::Try>(token, body, catches, finally);
+    }
+
+    std::shared_ptr<ast::Statement> Parser::catch_stmt() {
+        auto token = expect(TokenType::CATCH);
+        auto refs = reference_list();
+        std::shared_ptr<Token> symbol;
+        if (match(TokenType::AS)) symbol = expect(TokenType::IDENTIFIER);
+        auto body = BODY();
+        return std::make_shared<ast::stmt::Catch>(token, refs, symbol, body);
+    }
+
     std::shared_ptr<ast::Expression> Parser::expression() {
         return rule_or<ast::Expression>([&] { return assignment(); }, [&] { return ternary(); });
     }
@@ -597,6 +707,18 @@ namespace spade
         list.push_back(slice());
         while (match(TokenType::COMMA)) {
             if (auto item = rule_optional<ast::expr::Slice>([this] { return slice(); })) {
+                list.push_back(item);
+            } else
+                break;
+        }
+        return list;
+    }
+
+    std::vector<std::shared_ptr<ast::Reference>> Parser::reference_list() {
+        std::vector<std::shared_ptr<ast::Reference>> list;
+        list.push_back(reference());
+        while (match(TokenType::COMMA)) {
+            if (auto item = rule_optional<ast::Reference>([this] { return reference(); })) {
                 list.push_back(item);
             } else
                 break;

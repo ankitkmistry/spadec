@@ -16,7 +16,7 @@ void compile() {
     buffer << in.rdbuf();
     Lexer lexer(buffer.str());
     Parser parser(&lexer);
-    auto ast = parser.expression();
+    auto ast = parser.statement();
     ast::Printer printer{ast};
     std::cout << printer;
     // auto token = lexer.next_token();
@@ -35,7 +35,7 @@ void repl() {
         try {
             Lexer lexer(code);
             Parser parser(&lexer);
-            auto tree = parser.expression();
+            auto tree = parser.statement();
             ast::Printer printer{tree};
             std::cout << printer;
         } catch (const LexerError &err) {
