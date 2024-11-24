@@ -16,7 +16,7 @@ void compile() {
     buffer << in.rdbuf();
     Lexer lexer(buffer.str());
     Parser parser(&lexer);
-    auto ast = parser.function_decl();
+    auto ast = parser.parse();
     ast::Printer printer{ast};
     std::cout << printer;
 }
@@ -39,7 +39,7 @@ void repl() {
         try {
             Lexer lexer(code.str());
             Parser parser(&lexer);
-            auto tree = parser.function_decl();
+            auto tree = parser.parse();
             ast::Printer printer{tree};
             std::cout << printer;
         } catch (const LexerError &err) {
@@ -52,8 +52,8 @@ void repl() {
 
 int main() {
     try {
-        // compile();
-        repl();
+        compile();
+        // repl();
     } catch (const LexerError &err) {
         std::cerr << std::format("error [{}:{}] {}\n", err.get_line_start(), err.get_col_start(), err.what());
     } catch (const ParserError &err) {

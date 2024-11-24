@@ -2,56 +2,55 @@ grammar Spade;
 
 sep: ';'*;          // Separator
 
-compilationUnit: packageStmt? importStmt* declaration* EOF;
+module: importStmt* declaration* EOF;
 
-packageStmt: PACKAGE reference sep;
-importStmt: IMPORT reference (AS IDENTIFIER)? sep;
+importStmt: IMPORT ('.' '.'?)? reference (AS IDENTIFIER|'.' '*')? sep;
 
 reference: IDENTIFIER ('.' IDENTIFIER)*;
 
 // Declarations
 declaration: modifiers (
-                 varDecl sep
+                 varDecl
                | functionDecl
-               | classDecl
-               | interfaceDecl
-               | enumDecl
-               | annoDecl
+               | compoundDecl
             );
 
-// Enum declaration
-enumDecl: ENUM IDENTIFIER (':' parentList)? ('{' enumList sep memberDecl* '}')?;
-enumList: enumerator (',' enumerator)* ','?;
-enumerator: IDENTIFIER ('=' expr | '(' args? ')')?;
-
-annoDecl: ANNOTATION declName (':' parentList)? ('{' memberDecl* '}')?;
-interfaceDecl: INTERFACE declName (':' parentList)? ('{' memberDecl* '}')?;
-classDecl: CLASS declName (':' parentList)? ('{' memberDecl* '}')?;
+constraintList: constraint (',' constraint)* ','?
+constraint: IDENTIFIER ':' type
 
 parentList: parent (',' parent)* ','?;
 parent: reference ('[' typeArgs ']')?;
 
-declName: IDENTIFIER ('[' typeParams ']')?;
 typeParams: typeParam (',' typeParam)* ','?;
-typeParam: (OUT | IN)? IDENTIFIER (':' type)? ('=' type)?;
+typeParam: (OUT | IN)? IDENTIFIER ('=' type)?;
+
+compoundDecl: (CLASS | INTERFACE | ANNOTATION) IDENTIFIER 
+              ('[' typeParams ']' ('where' constaintList)?)? 
+              (':' parentList)? 
+          ('{' enumList memberDecl* '}')?;
+
+enumList: enumerator (',' enumerator)* ','?;
+enumerator: IDENTIFIER ('=' expr | '(' args? ')')?;
 
 // Member declaration
 memberDecl: modifiers (
                 varDecl
               | functionDecl
               | initDecl
-              | classDecl
-              | interfaceDecl
-              | enumDecl
+              | compoundDecl except ANNOTATION
            ) sep;
 
-modifiers: (ABSTRACT | FINAL | STATIC | INLINE | PRIVATE | INTERNAL | PROTECTED | PUBLIC)*;
+modifiers: (ABSTRACT | FINAL | STATIC | PRIVATE | INTERNAL | PROTECTED | PUBLIC)*;
+
+initDecl: INIT '(' params? ')' definition;
 
 varDecl: (VAR | CONST) (IDENTIFIER (':' type)? | destructDecl) ('=' expr)?;
 
-initDecl: INIT '(' params? ')' definition?;
-
-functionDecl: FUN IDENTIFIER '(' params? ')' ('->' type)? definition?;
+functionDecl: FUN IDENTIFIER 
+                  (('[' typeParams ']') ('where' constaintList)?)? 
+                  '(' params? ')' 
+                  ('->' type)? 
+              definition?;
 params: paramList ('*' paramList)? ('/' paramList)?;
 paramList: param (',' param)* ','?;
 param: CONST? '*'? (IDENTIFIER | '_') (':' type)? ('=' expr)?;
@@ -79,7 +78,7 @@ stmt
     | expr                                                  # exprStmt
     ;
 
-block: '{' (block | declaration | stmt)* '}';
+block: '{' (block | declaration sep | stmt sep)* '}';
 
 matchCase: WHEN items (IF expr)? '->' stmts;
 
@@ -115,15 +114,15 @@ assignee: postfix | destructDecl;
 assignOperator: '='|'+='|'-='|'*='|'/='|'%='|'**='|'<<='|'>>='|'>>>='|'&='|'|='|'^='|'??=';
 
 destructDecl: '[' destruct (',' destruct)* ','? ']';
-destruct: '*' IDENTIFIER ('['INTEGER?']')? | IDENTIFIER | '_';
+destruct: '*'? (IDENTIFIER | '_');
 
 // Postfix expression
-postfix: primary                   # postfixPrimary
-    | postfix '?'? '.' IDENTIFIER  # postfixDot
-    | postfix '(' args? ')'        # postfixCall
-    | postfix '[' indexer ']'      # postfixIndexer
-    | postfix '[' typeArgs ']'     # postfixGeneric
-    | postfix block                # postfixBlock
+postfix: primary                            # postfixPrimary
+    | postfix '?'? '.' (IDENTIFIER | INIT)  # postfixDot
+    | postfix '(' args? ')'                 # postfixCall
+    | postfix '[' indexer ']'               # postfixIndexer
+    | postfix '[' typeArgs ']'              # postfixGeneric
+    | postfix block                         # postfixBlock
     ;
 
 args: arg (',' arg)* ','?;
@@ -175,14 +174,13 @@ paramType: '*'? type;
 typeList: type (',' type)* ','?;
 
 memberTypeList: memberType (',' memberType)* ','?;
-memberType: IDENTIFIER (':' type)?;
+memberType: (IDENTIFIER | INIT) (':' type)?;
 
 // Keywords
 
 // Heading
 PACKAGE: 'package';
 IMPORT: 'import';
-EXPORT: 'export';
 // Clauses
 EXTENDS: 'extends';
 IMPLEMENTS: 'implements';
@@ -199,7 +197,6 @@ VAR: 'var';
 ABSTRACT: 'abstract';
 FINAL: 'final';
 STATIC: 'static';
-INLINE: 'inline';
 // Accessors
 PRIVATE: 'private';
 PROTECTED: 'protected';

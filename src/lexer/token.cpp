@@ -6,13 +6,7 @@ namespace spade
 {
     const static std::unordered_map<string, TokenType> KEYWORDS = {
             {
-             "package", TokenType::PACKAGE,
-             },
-            {
              "import", TokenType::IMPORT,
-             },
-            {
-             "export", TokenType::EXPORT,
              },
             {
              "extends", TokenType::EXTENDS,
@@ -54,9 +48,6 @@ namespace spade
              "static", TokenType::STATIC,
              },
             {
-             "inline", TokenType::INLINE,
-             },
-            {
              "private", TokenType::PRIVATE,
              },
             {
@@ -96,7 +87,8 @@ namespace spade
             {"null", TokenType::NULL_},
             {"object", TokenType::OBJECT},
             {"type", TokenType::TYPE},
-            {"typeof", TokenType::TYPEOF}
+            {"typeof", TokenType::TYPEOF},
+            {"_", TokenType::UNDERSCORE}
     };
 
     string Token::to_string() const {
@@ -184,12 +176,8 @@ namespace spade
                 return "=";
             case TokenType::COLON:
                 return ":";
-            case TokenType::PACKAGE:
-                return "package";
             case TokenType::IMPORT:
                 return "import";
-            case TokenType::EXPORT:
-                return "export";
             case TokenType::EXTENDS:
                 return "extends";
             case TokenType::IMPLEMENTS:
@@ -216,8 +204,6 @@ namespace spade
                 return "final";
             case TokenType::STATIC:
                 return "static";
-            case TokenType::INLINE:
-                return "inline";
             case TokenType::PRIVATE:
                 return "private";
             case TokenType::PROTECTED:
@@ -292,6 +278,8 @@ namespace spade
                 return "<float>";
             case TokenType::STRING:
                 return "<string>";
+            case TokenType::UNDERSCORE:
+                return "_";
             case TokenType::END_OF_FILE:
                 return "<EOF>";
             default:
@@ -375,12 +363,8 @@ namespace spade
                 return "EQUAL";
             case TokenType::COLON:
                 return "COLON";
-            case TokenType::PACKAGE:
-                return "PACKAGE";
             case TokenType::IMPORT:
                 return "IMPORT";
-            case TokenType::EXPORT:
-                return "EXPORT";
             case TokenType::EXTENDS:
                 return "EXTENDS";
             case TokenType::IMPLEMENTS:
@@ -407,8 +391,6 @@ namespace spade
                 return "FINAL";
             case TokenType::STATIC:
                 return "STATIC";
-            case TokenType::INLINE:
-                return "INLINE";
             case TokenType::PRIVATE:
                 return "PRIVATE";
             case TokenType::PROTECTED:
@@ -483,6 +465,8 @@ namespace spade
                 return "FLOAT";
             case TokenType::STRING:
                 return "STRING";
+            case TokenType::UNDERSCORE:
+                return "UNDERSCORE";
             case TokenType::END_OF_FILE:
                 return "END_OF_FILE";
             default:

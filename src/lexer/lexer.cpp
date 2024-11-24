@@ -192,7 +192,7 @@ namespace spade
                     start = end;
                     break;
                 default: {
-                    if (std::isalpha(c)) {
+                    if (std::isalpha(c) || c == '_') {
                         while (std::isalnum(c = peek()) || c == '_') advance();
                         auto token = get_token(TokenType::IDENTIFIER);
                         TokenType keyword_type;

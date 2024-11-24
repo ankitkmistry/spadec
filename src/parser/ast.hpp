@@ -6,8 +6,19 @@
 
 namespace spade::ast
 {
+    class Module;
+    class Import;
+    class Declaration;
+
     namespace decl
     {
+        class Compound;
+        class Enumerator;
+        class Parent;
+        class Init;
+        class Constraint;
+        class TypeParam;
+        class Variable;
         class Param;
         class Params;
         class Function;
@@ -38,6 +49,8 @@ namespace spade::ast
 
     namespace type
     {
+        class TypeBuilderMember;
+        class TypeBuilder;
         class Nullable;
         class BinaryOp;
         class TypeOf;
@@ -48,6 +61,7 @@ namespace spade::ast
 
     namespace stmt
     {
+        class Declaration;
         class Expr;
         class Yield;
         class Return;
@@ -73,8 +87,6 @@ namespace spade::ast
 
         // Visitor
         virtual void visit(Reference &node) = 0;
-        virtual void visit(expr::Argument &node) = 0;
-        virtual void visit(expr::Slice &node) = 0;
         // Type visitor
         virtual void visit(type::Reference &node) = 0;
         virtual void visit(type::Function &node) = 0;
@@ -82,14 +94,18 @@ namespace spade::ast
         virtual void visit(type::TypeOf &node) = 0;
         virtual void visit(type::BinaryOp &node) = 0;
         virtual void visit(type::Nullable &node) = 0;
+        virtual void visit(type::TypeBuilder &node) = 0;
+        virtual void visit(type::TypeBuilderMember &node) = 0;
         // Expression visitor
         virtual void visit(expr::Constant &node) = 0;
         virtual void visit(expr::Super &node) = 0;
         virtual void visit(expr::Self &node) = 0;
         virtual void visit(expr::DotAccess &node) = 0;
         virtual void visit(expr::Call &node) = 0;
+        virtual void visit(expr::Argument &node) = 0;
         virtual void visit(expr::Reify &node) = 0;
         virtual void visit(expr::Index &node) = 0;
+        virtual void visit(expr::Slice &node) = 0;
         virtual void visit(expr::Unary &node) = 0;
         virtual void visit(expr::Cast &node) = 0;
         virtual void visit(expr::Binary &node) = 0;
@@ -109,10 +125,21 @@ namespace spade::ast
         virtual void visit(stmt::Return &node) = 0;
         virtual void visit(stmt::Yield &node) = 0;
         virtual void visit(stmt::Expr &node) = 0;
+        virtual void visit(stmt::Declaration &node) = 0;
         // Declaration visitor
+        virtual void visit(decl::TypeParam &node) = 0;
+        virtual void visit(decl::Constraint &node) = 0;
         virtual void visit(decl::Param &node) = 0;
         virtual void visit(decl::Params &node) = 0;
         virtual void visit(decl::Function &node) = 0;
+        virtual void visit(decl::Variable &node) = 0;
+        virtual void visit(decl::Init &node) = 0;
+        virtual void visit(decl::Parent &node) = 0;
+        virtual void visit(decl::Enumerator &node) = 0;
+        virtual void visit(decl::Compound &node) = 0;
+        // Module level visitor
+        virtual void visit(Import &node) = 0;
+        virtual void visit(Module &node) = 0;
     };
 
     template<typename T>
@@ -191,7 +218,7 @@ namespace spade::ast
 
     namespace type
     {
-        class Reference : public Type {
+        class Reference final : public Type {
             std::shared_ptr<ast::Reference> reference;
             std::vector<std::shared_ptr<Type>> type_args;
 
@@ -215,7 +242,7 @@ namespace spade::ast
             }
         };
 
-        class Function : public Type {
+        class Function final : public Type {
             std::vector<std::shared_ptr<Type>> param_types;
             std::shared_ptr<Type> return_type;
 
@@ -237,7 +264,7 @@ namespace spade::ast
             }
         };
 
-        class TypeLiteral : public Type {
+        class TypeLiteral final : public Type {
           public:
             TypeLiteral(std::shared_ptr<Token> token) : Type(token, token) {}
 
@@ -246,7 +273,7 @@ namespace spade::ast
             }
         };
 
-        class TypeOf : public Type {
+        class TypeOf final : public Type {
             std::shared_ptr<Expression> expr;
 
           public:
@@ -262,7 +289,7 @@ namespace spade::ast
             }
         };
 
-        class BinaryOp : public Type {
+        class BinaryOp final : public Type {
             std::shared_ptr<Type> left;
             std::shared_ptr<Token> op;
             std::shared_ptr<Type> right;
@@ -288,7 +315,7 @@ namespace spade::ast
             }
         };
 
-        class Nullable : public Type {
+        class Nullable final : public Type {
             std::shared_ptr<Type> type;
 
           public:
@@ -296,6 +323,45 @@ namespace spade::ast
 
             std::shared_ptr<Type> get_type() const {
                 return type;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+
+        class TypeBuilderMember final : public AstNode {
+            std::shared_ptr<Token> name;
+            std::shared_ptr<Type> type;
+
+          public:
+            TypeBuilderMember(std::shared_ptr<Token> name, std::shared_ptr<Type> type)
+                : AstNode(name, type), name(name), type(type) {}
+
+            std::shared_ptr<Token> get_name() const {
+                return name;
+            }
+
+            std::shared_ptr<Type> get_type() const {
+                return type;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+
+        class TypeBuilder final : public Type {
+            std::vector<std::shared_ptr<TypeBuilderMember>> members;
+
+          public:
+            template<typename T1, typename T2>
+                requires HasLineInfo<T1> && HasLineInfo<T2>
+            explicit TypeBuilder(T1 start, T2 end, const std::vector<std::shared_ptr<TypeBuilderMember>> &members)
+                : Type(start, end), members(members) {}
+
+            const std::vector<std::shared_ptr<TypeBuilderMember>> &get_members() const {
+                return members;
             }
 
             void accept(VisitorBase *visitor) override {
@@ -904,6 +970,8 @@ namespace spade::ast
     }    // namespace stmt
 
     class Declaration : public AstNode {
+        std::vector<std::shared_ptr<Token>> modifiers;
+
       public:
         Declaration(int line_start, int line_end, int col_start, int col_end)
             : AstNode(line_start, line_end, col_start, col_end) {}
@@ -911,11 +979,67 @@ namespace spade::ast
         template<typename T1, typename T2>
             requires HasLineInfo<T1> && HasLineInfo<T2>
         Declaration(T1 start, T2 end) : AstNode(start, end) {}
+
+        const std::vector<std::shared_ptr<Token>> &get_modifiers() const {
+            return modifiers;
+        }
+
+        void set_modifiers(const std::vector<std::shared_ptr<Token>> &modifiers) {
+            this->modifiers = modifiers;
+        }
     };
 
     namespace decl
     {
-        class Param : public Declaration {
+        class TypeParam final : public Declaration {
+            std::shared_ptr<Token> variance;
+            std::shared_ptr<Token> name;
+            std::shared_ptr<Type> default_type;
+
+          public:
+            template<typename T>
+                requires HasLineInfo<T>
+            TypeParam(std::shared_ptr<Token> variance, T end, std::shared_ptr<Token> name, std::shared_ptr<Type> default_type)
+                : Declaration(variance ? variance : name, end), variance(variance), name(name), default_type(default_type) {}
+
+            std::shared_ptr<Token> get_variance() const {
+                return variance;
+            }
+
+            std::shared_ptr<Token> get_name() const {
+                return name;
+            }
+
+            std::shared_ptr<Type> get_default_type() const {
+                return default_type;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+
+        class Constraint final : public AstNode {
+            std::shared_ptr<Token> arg;
+            std::shared_ptr<Type> type;
+
+          public:
+            Constraint(std::shared_ptr<Token> arg, std::shared_ptr<Type> type) : AstNode(arg, type), arg(arg), type(type) {}
+
+            std::shared_ptr<Token> get_arg() const {
+                return arg;
+            }
+
+            std::shared_ptr<Type> get_type() const {
+                return type;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+
+        class Param final : public Declaration {
             std::shared_ptr<Token> is_const;
             std::shared_ptr<Token> variadic;
             std::shared_ptr<Token> name;
@@ -958,7 +1082,7 @@ namespace spade::ast
             }
         };
 
-        class Params : public Declaration {
+        class Params final : public Declaration {
             std::vector<std::shared_ptr<Param>> pos_only;
             std::vector<std::shared_ptr<Param>> pos_kwd;
             std::vector<std::shared_ptr<Param>> kwd_only;
@@ -987,8 +1111,10 @@ namespace spade::ast
             }
         };
 
-        class Function : public Declaration {
+        class Function final : public Declaration {
             std::shared_ptr<Token> name;
+            std::vector<std::shared_ptr<TypeParam>> type_params;
+            std::vector<std::shared_ptr<Constraint>> constraints;
             std::shared_ptr<Params> params;
             std::shared_ptr<Type> return_type;
             std::shared_ptr<Statement> definition;
@@ -996,12 +1122,28 @@ namespace spade::ast
           public:
             template<typename T>
                 requires HasLineInfo<T>
-            Function(std::shared_ptr<Token> token, T end, std::shared_ptr<Token> name, std::shared_ptr<Params> params,
+            Function(std::shared_ptr<Token> token, T end, std::shared_ptr<Token> name,
+                     const std::vector<std::shared_ptr<TypeParam>> &type_params,
+                     const std::vector<std::shared_ptr<Constraint>> &constraints, std::shared_ptr<Params> params,
                      std::shared_ptr<Type> return_type, std::shared_ptr<Statement> definition)
-                : Declaration(token, end), name(name), params(params), return_type(return_type), definition(definition) {}
+                : Declaration(token, end),
+                  name(name),
+                  type_params(type_params),
+                  constraints(constraints),
+                  params(params),
+                  return_type(return_type),
+                  definition(definition) {}
 
             std::shared_ptr<Token> get_name() const {
                 return name;
+            }
+
+            const std::vector<std::shared_ptr<TypeParam>> &get_type_params() const {
+                return type_params;
+            }
+
+            const std::vector<std::shared_ptr<Constraint>> &get_constraints() const {
+                return constraints;
             }
 
             std::shared_ptr<Params> get_params() const {
@@ -1020,5 +1162,239 @@ namespace spade::ast
                 visitor->visit(*this);
             }
         };
+
+        class Variable final : public Declaration {
+            std::shared_ptr<Token> token;
+            std::shared_ptr<Token> name;
+            std::shared_ptr<Type> type;
+            std::shared_ptr<Expression> expr;
+
+          public:
+            template<typename T>
+                requires HasLineInfo<T>
+            Variable(std::shared_ptr<Token> token, T end, std::shared_ptr<Token> name, std::shared_ptr<Type> type,
+                     std::shared_ptr<Expression> expr)
+                : Declaration(token, end), token(token), name(name), type(type), expr(expr) {}
+
+            std::shared_ptr<Token> get_token() const {
+                return token;
+            }
+
+            std::shared_ptr<Token> get_name() const {
+                return name;
+            }
+
+            std::shared_ptr<Type> get_type() const {
+                return type;
+            }
+
+            std::shared_ptr<Expression> get_expr() const {
+                return expr;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+
+        class Init final : public Declaration {
+            std::shared_ptr<Params> params;
+            std::shared_ptr<Statement> definition;
+
+          public:
+            Init(std::shared_ptr<Token> token, std::shared_ptr<Params> params, std::shared_ptr<Statement> definition)
+                : Declaration(token, definition), params(params), definition(definition) {}
+
+            std::shared_ptr<Params> get_params() const {
+                return params;
+            }
+
+            std::shared_ptr<Statement> get_definition() const {
+                return definition;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+
+        class Parent final : public AstNode {
+            std::shared_ptr<Reference> reference;
+            std::vector<std::shared_ptr<Type>> type_args;
+
+          public:
+            template<typename T>
+                requires HasLineInfo<T>
+            Parent(T end, std::shared_ptr<Reference> reference, const std::vector<std::shared_ptr<Type>> &type_args)
+                : AstNode(reference, end), reference(reference), type_args(type_args) {}
+
+            std::shared_ptr<Reference> get_reference() const {
+                return reference;
+            }
+
+            const std::vector<std::shared_ptr<Type>> &get_type_args() const {
+                return type_args;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+
+        class Enumerator final : public Declaration {
+            std::shared_ptr<Token> name;
+            std::shared_ptr<Expression> expr;
+            std::vector<std::shared_ptr<expr::Argument>> args;
+
+          public:
+            explicit Enumerator(std::shared_ptr<Token> name) : Declaration(name, name), name(name) {}
+
+            Enumerator(std::shared_ptr<Token> name, std::shared_ptr<Expression> expr)
+                : Declaration(name, expr), name(name), expr(expr) {}
+
+            template<typename T>
+                requires HasLineInfo<T>
+            Enumerator(T end, std::shared_ptr<Token> name, const std::vector<std::shared_ptr<expr::Argument>> &args)
+                : Declaration(name, end), name(name), args(args) {}
+
+            std::shared_ptr<Token> get_name() const {
+                return name;
+            }
+
+            std::shared_ptr<Expression> get_expr() const {
+                return expr;
+            }
+
+            const std::vector<std::shared_ptr<expr::Argument>> &get_args() const {
+                return args;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+
+        class Compound final : public Declaration {
+            std::shared_ptr<Token> token;
+            std::shared_ptr<Token> name;
+            std::vector<std::shared_ptr<TypeParam>> type_params;
+            std::vector<std::shared_ptr<Constraint>> constraints;
+            std::vector<std::shared_ptr<Parent>> parents;
+            std::vector<std::shared_ptr<Enumerator>> enumerators;
+            std::vector<std::shared_ptr<Declaration>> members;
+
+          public:
+            template<typename T>
+                requires HasLineInfo<T>
+            Compound(std::shared_ptr<Token> token, T end, std::shared_ptr<Token> name,
+                     const std::vector<std::shared_ptr<TypeParam>> &type_params,
+                     const std::vector<std::shared_ptr<Constraint>> &constraints,
+                     const std::vector<std::shared_ptr<Parent>> &parents,
+                     const std::vector<std::shared_ptr<Enumerator>> &enumerators,
+                     const std::vector<std::shared_ptr<Declaration>> &members)
+                : Declaration(token, end),
+                  token(token),
+                  name(name),
+                  type_params(type_params),
+                  constraints(constraints),
+                  parents(parents),
+                  enumerators(enumerators),
+                  members(members) {}
+
+            std::shared_ptr<Token> get_token() const {
+                return token;
+            }
+
+            std::shared_ptr<Token> get_name() const {
+                return name;
+            }
+
+            const std::vector<std::shared_ptr<TypeParam>> &get_type_params() const {
+                return type_params;
+            }
+
+            const std::vector<std::shared_ptr<Constraint>> &get_constraints() const {
+                return constraints;
+            }
+
+            const std::vector<std::shared_ptr<Parent>> &get_parents() const {
+                return parents;
+            }
+
+            const std::vector<std::shared_ptr<Enumerator>> &get_enumerators() {
+                return enumerators;
+            }
+
+            const std::vector<std::shared_ptr<Declaration>> &get_members() const {
+                return members;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
     }    // namespace decl
+
+    class stmt::Declaration final : public Statement {
+        std::shared_ptr<ast::Declaration> declaration;
+
+      public:
+        explicit Declaration(std::shared_ptr<ast::Declaration> declaration)
+            : Statement(declaration, declaration), declaration(declaration) {}
+
+        std::shared_ptr<ast::Declaration> get_declaration() const {
+            return declaration;
+        }
+
+        void accept(VisitorBase *visitor) override {
+            visitor->visit(*this);
+        }
+    };
+
+    class Import final : public AstNode {
+        string path;
+        std::shared_ptr<Token> alias;
+
+      public:
+        template<typename T1, typename T2>
+            requires HasLineInfo<T1> && HasLineInfo<T2>
+        Import(T1 start, T2 end, const string &path, std::shared_ptr<Token> alias)
+            : AstNode(start, end), path(path), alias(alias) {}
+
+        const string &get_path() const {
+            return path;
+        }
+
+        std::shared_ptr<Token> get_alias() const {
+            return alias;
+        }
+
+        void accept(VisitorBase *visitor) override {
+            visitor->visit(*this);
+        }
+    };
+
+    class Module final : public AstNode {
+        std::vector<std::shared_ptr<Import>> imports;
+        std::vector<std::shared_ptr<Declaration>> members;
+
+      public:
+        template<typename T1, typename T2>
+            requires HasLineInfo<T1> && HasLineInfo<T2>
+        Module(T1 start, T2 end, const std::vector<std::shared_ptr<Import>> &imports,
+               const std::vector<std::shared_ptr<Declaration>> &members)
+            : AstNode(start, end), imports(imports), members(members) {}
+
+        const std::vector<std::shared_ptr<Import>> &get_imports() const {
+            return imports;
+        }
+
+        const std::vector<std::shared_ptr<Declaration>> &get_members() const {
+            return members;
+        }
+
+        void accept(VisitorBase *visitor) override {
+            visitor->visit(*this);
+        }
+    };
 }    // namespace spade::ast

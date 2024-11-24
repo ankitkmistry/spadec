@@ -92,6 +92,12 @@ namespace spade::ast
         void visit(Reference &node) override;
         void visit(expr::Argument &node) override;
         void visit(expr::Slice &node) override;
+        void visit(type::TypeBuilderMember &node) override;
+        void visit(decl::Param &node) override;
+        void visit(decl::Params &node) override;
+        void visit(decl::Constraint &node) override;
+        void visit(decl::Parent &node) override;
+        void visit(decl::Enumerator &node) override;
 
         void visit(type::Reference &type) override;
         void visit(type::Function &type) override;
@@ -99,6 +105,7 @@ namespace spade::ast
         void visit(type::TypeOf &type) override;
         void visit(type::BinaryOp &type) override;
         void visit(type::Nullable &type) override;
+        void visit(type::TypeBuilder &node) override;
 
         void visit(expr::Constant &expr) override;
         void visit(expr::Super &expr) override;
@@ -126,10 +133,15 @@ namespace spade::ast
         void visit(stmt::Return &stmt) override;
         void visit(stmt::Yield &stmt) override;
         void visit(stmt::Expr &stmt) override;
+        void visit(stmt::Declaration &node) override;
 
-    public:
-        void visit(decl::Param &node) override;
-        void visit(decl::Params &node) override;
         void visit(decl::Function &node) override;
+        void visit(decl::TypeParam &node) override;
+        void visit(decl::Variable &node) override;
+        void visit(decl::Init &node) override;
+        void visit(decl::Compound &node) override;
+
+        void visit(Import &node) override;
+        void visit(Module &node) override;
     };
 }    // namespace spade::ast

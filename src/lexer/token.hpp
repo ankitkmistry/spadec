@@ -44,9 +44,7 @@ namespace spade
 
         // Keywords
         // Heading
-        PACKAGE,
         IMPORT,
-        EXPORT,
         // Clauses
         EXTENDS,
         IMPLEMENTS,
@@ -63,7 +61,6 @@ namespace spade
         ABSTRACT,
         FINAL,
         STATIC,
-        INLINE,
         // Accessors
         PRIVATE,
         PROTECTED,
@@ -108,6 +105,7 @@ namespace spade
         INTEGER,
         FLOAT,
         STRING,
+        UNDERSCORE,
         // End of file
         END_OF_FILE
     };

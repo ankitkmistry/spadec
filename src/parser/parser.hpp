@@ -16,12 +16,46 @@ namespace spade
 
         void fill_tokens_buffer(int n);
 
+        template<typename... Ts>
+            requires(std::same_as<TokenType, Ts> && ...)
+        static string make_expected_string(Ts... types) {
+            std::vector<TokenType> list{types...};
+            string result;
+            for (int i = 0; i < list.size(); ++i) {
+                result += TokenInfo::get_repr(list[i]);
+                if (i < list.size() - 1) result += ", ";
+            }
+            return result;
+        }
+
         std::shared_ptr<Token> current();
         std::shared_ptr<Token> peek(int i = 0);
         std::shared_ptr<Token> advance();
 
-        std::shared_ptr<Token> match(TokenType type);
-        std::shared_ptr<Token> expect(TokenType type);
+        template<typename... T>
+            requires(std::same_as<TokenType, T> && ...)
+        std::shared_ptr<Token> match(T... types) {
+            const std::vector<TokenType> ts = {types...};
+            for (auto t: ts) {
+                if (peek()->get_type() == t) return advance();
+            }
+            return null;
+        }
+
+        std::shared_ptr<Token> match(const string &text) {
+            if (peek()->get_text() == text) return advance();
+            return null;
+        }
+
+        template<typename... T>
+            requires(std::same_as<TokenType, T> && ...)
+        std::shared_ptr<Token> expect(T... types) {
+            const std::vector<TokenType> ts = {types...};
+            for (auto t: ts) {
+                if (peek()->get_type() == t) return advance();
+            }
+            throw error(std::format("expected {}", make_expected_string(types...)));
+        }
 
         static ParserError error(const string &msg, std::shared_ptr<Token> token);
         ParserError error(const string &msg);
@@ -60,13 +94,23 @@ namespace spade
         }
 
         // Parser rules
+        std::shared_ptr<ast::Module> module();
+        std::shared_ptr<ast::Import> import();
         std::shared_ptr<ast::Reference> reference();
 
         // Declarations
-      public:
+        std::shared_ptr<ast::Declaration> declaration();
+        std::shared_ptr<ast::Declaration> compound_decl();
+        std::shared_ptr<ast::Declaration> member_decl();
+        std::shared_ptr<ast::Declaration> init_decl();
+        std::shared_ptr<ast::Declaration> variable_decl();
         std::shared_ptr<ast::Declaration> function_decl();
 
-      private:
+        std::vector<std::shared_ptr<Token>> modifiers();
+        std::shared_ptr<ast::decl::TypeParam> type_param();
+        std::shared_ptr<ast::decl::Constraint> constraint();
+        std::shared_ptr<ast::decl::Parent> parent();
+        std::shared_ptr<ast::decl::Enumerator> enumerator();
         std::shared_ptr<ast::decl::Params> params();
         std::shared_ptr<ast::decl::Param> param();
 
@@ -114,6 +158,7 @@ namespace spade
         std::shared_ptr<ast::Type> intersection_type();
         std::shared_ptr<ast::Type> nullable_type();
         std::shared_ptr<ast::Type> primary_type();
+        std::shared_ptr<ast::type::TypeBuilderMember> type_builder_member();
 
         // Comma separated lists
         std::vector<std::shared_ptr<ast::Type>> type_list();
@@ -123,6 +168,11 @@ namespace spade
         std::vector<std::shared_ptr<ast::expr::Slice>> slice_list();
         std::vector<std::shared_ptr<ast::Reference>> reference_list();
         std::vector<std::shared_ptr<ast::decl::Param>> param_list();
+        std::vector<std::shared_ptr<ast::decl::TypeParam>> type_param_list();
+        std::vector<std::shared_ptr<ast::decl::Constraint>> constraint_list();
+        std::vector<std::shared_ptr<ast::decl::Parent>> parent_list();
+        std::vector<std::shared_ptr<ast::decl::Enumerator>> enumerator_list();
+        std::vector<std::shared_ptr<ast::type::TypeBuilderMember>> type_builder_member_list();
 
       public:
         explicit Parser(Lexer *lexer) : lexer(lexer) {}
@@ -132,6 +182,8 @@ namespace spade
         Parser &operator=(const Parser &other) = default;
         Parser &operator=(Parser &&other) noexcept = default;
         ~Parser() = default;
+
+        std::shared_ptr<ast::Module> parse();
 
         Lexer *get_lexer() const {
             return lexer;

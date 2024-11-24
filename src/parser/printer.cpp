@@ -78,6 +78,13 @@ namespace spade::ast
         print(node.get_step(), "step");
     }
 
+    void Printer::visit(type::TypeBuilderMember &node) {
+        write_repr(cast<AstNode>(&node));
+        ss << "type::TypeBuilderMember";
+        print(node.get_name(), "name");
+        print(node.get_type(), "type");
+    }
+
     void Printer::visit(type::Reference &type) {
         write_repr(cast<AstNode>(&type));
         ss << "type::Reference";
@@ -115,6 +122,12 @@ namespace spade::ast
         write_repr(cast<AstNode>(&type));
         ss << "type::Nullable";
         print(type.get_type(), "type");
+    }
+
+    void Printer::visit(type::TypeBuilder &node) {
+        write_repr(cast<AstNode>(&node));
+        ss << "type::TypeBuilder";
+        print(node.get_members(), "members");
     }
 
     void Printer::visit(expr::Constant &expr) {
@@ -294,6 +307,12 @@ namespace spade::ast
         print(stmt.get_expression(), "expression");
     }
 
+    void Printer::visit(stmt::Declaration &node) {
+        write_repr(&node);
+        ss << "stmt::Declaration";
+        print(node.get_declaration(), "declaration");
+    }
+
     void Printer::visit(decl::Param &node) {
         write_repr(&node);
         ss << "decl::Param";
@@ -312,6 +331,28 @@ namespace spade::ast
         print(node.get_kwd_only(), "kwd_only");
     }
 
+    void Printer::visit(decl::Constraint &node) {
+        write_repr(&node);
+        ss << "decl::Constraint";
+        print(node.get_arg(), "arg");
+        print(node.get_type(), "type");
+    }
+
+    void Printer::visit(decl::Parent &node) {
+        write_repr(&node);
+        ss << "decl::Parent";
+        print(node.get_reference(), "reference");
+        print(node.get_type_args(), "type_args");
+    }
+
+    void Printer::visit(decl::Enumerator &node) {
+        write_repr(&node);
+        ss << "decl::Enumerator";
+        print(node.get_name(), "name");
+        print(node.get_expr(), "expr");
+        print(node.get_args(), "args");
+    }
+
     void Printer::visit(decl::Function &node) {
         write_repr(&node);
         ss << "decl::Function";
@@ -319,5 +360,55 @@ namespace spade::ast
         print(node.get_params(), "params");
         print(node.get_return_type(), "return_type");
         print(node.get_definition(), "definition");
+    }
+
+    void Printer::visit(decl::TypeParam &node) {
+        write_repr(&node);
+        ss << "decl::TypeParam";
+        print(node.get_variance(), "variance");
+        print(node.get_name(), "name");
+        print(node.get_default_type(), "default_type");
+    }
+
+    void Printer::visit(decl::Variable &node) {
+        write_repr(&node);
+        ss << "decl::Variable";
+        print(node.get_token(), "token");
+        print(node.get_name(), "name");
+        print(node.get_expr(), "expr");
+    }
+
+    void Printer::visit(decl::Init &node) {
+        write_repr(&node);
+        ss << "decl::Init";
+        print(node.get_params(), "params");
+        print(node.get_definition(), "definition");
+    }
+
+    void Printer::visit(decl::Compound &node) {
+        write_repr(&node);
+        ss << "decl::Init";
+        print(node.get_token(), "token");
+        print(node.get_name(), "name");
+        print(node.get_type_params(), "type_params");
+        print(node.get_constraints(), "constraints");
+        print(node.get_parents(), "parents");
+        print(node.get_enumerators(), "enumerators");
+        print(node.get_members(), "members");
+    }
+
+    void Printer::visit(Import &node) {
+        write_repr(&node);
+        ss << "Import from='" << node.get_path() << "'";
+        if (auto alias = node.get_alias()) {
+            ss << " as='" << alias->get_text() << "'";
+        }
+    }
+
+    void Printer::visit(Module &node) {
+        write_repr(&node);
+        ss << "Module";
+        print(node.get_imports(), "imports");
+        print(node.get_members(), "members");
     }
 }    // namespace spade::ast
