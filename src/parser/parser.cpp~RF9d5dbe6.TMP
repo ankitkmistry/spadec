@@ -552,10 +552,11 @@ namespace spade
     }
 
     std::shared_ptr<ast::expr::Argument> Parser::argument() {
-        std::shared_ptr<Token> name;
-        if (peek()->get_type() == TokenType::IDENTIFIER && peek(1)->get_type() == TokenType::COLON) {
-            name = advance();
-            advance();
+        if (peek()->get_type() == TokenType::IDENTIFIER && peek(1))
+
+        std::shared_ptr<Token> name = match(TokenType::IDENTIFIER);
+        if (name && !match(TokenType::COLON)) {
+            return std::make_shared<ast::expr::Argument>(std::make_shared<ast::expr::Constant>(name));
         }
         auto expr = expression();
         return name ? std::make_shared<ast::expr::Argument>(name, expr) : std::make_shared<ast::expr::Argument>(expr);

@@ -33,13 +33,12 @@ namespace spade
         return tokens[index - 1];
     }
 
-    std::shared_ptr<Token> Parser::peek(int i) {
-        auto idx = index + i;
-        if (idx >= tokens.size()) {
+    std::shared_ptr<Token> Parser::peek() {
+        if (index >= tokens.size()) {
             fill_tokens_buffer(FILL_CONSTANT);
-            if (idx >= tokens.size()) return tokens.back();    // EOF
+            if (index >= tokens.size()) return tokens.back();    // EOF
         }
-        return tokens[idx];
+        return tokens[index];
     }
 
     std::shared_ptr<Token> Parser::advance() {
@@ -92,75 +91,12 @@ namespace spade
         return std::make_shared<ast::Reference>(path);
     }
 
-    std::shared_ptr<ast::Declaration> Parser::function_decl() {
-        auto token = expect(TokenType::FUN);
-        auto name = expect(TokenType::IDENTIFIER);
-        expect(TokenType::LPAREN);
-        std::shared_ptr<ast::decl::Params> fun_params;
-        if (peek()->get_type() != TokenType::RPAREN) fun_params = params();
-        expect(TokenType::RPAREN);
-        std::shared_ptr<ast::Type> ret_type;
-        if (match(TokenType::ARROW)) ret_type = type();
-        std::shared_ptr<ast::Statement> def;
-        if (match(TokenType::EQUAL)) def = statement();
-        else if (peek()->get_type() == TokenType::LBRACE)
-            def = block();
-        return std::make_shared<ast::decl::Function>(token, current(), name, fun_params, ret_type, def);
-    }
-
-    std::shared_ptr<ast::decl::Params> Parser::params() {
-        const static std::vector<std::shared_ptr<ast::decl::Param>> EMPTY;
-        std::vector<std::shared_ptr<ast::decl::Param>> param_list1 = param_list();
-        std::vector<std::shared_ptr<ast::decl::Param>> param_list2;
-        std::vector<std::shared_ptr<ast::decl::Param>> param_list3;
-        if (current()->get_type() == TokenType::COMMA && match(TokenType::STAR)) {
-            expect(TokenType::COMMA);
-            param_list2 = param_list();
-        }
-        if (current()->get_type() == TokenType::COMMA && match(TokenType::SLASH)) {
-            expect(TokenType::COMMA);
-            param_list3 = param_list();
-        }
-        if (param_list2.empty() && param_list3.empty())
-            return std::make_shared<ast::decl::Params>(param_list1.front(), current(), EMPTY, param_list1, EMPTY);
-        if (param_list2.empty())
-            return std::make_shared<ast::decl::Params>(param_list1.front(), current(), EMPTY, param_list1, param_list3);
-        if (param_list3.empty())
-            return std::make_shared<ast::decl::Params>(param_list1.front(), current(), param_list1, param_list2, EMPTY);
-        return std::make_shared<ast::decl::Params>(param_list1.front(), current(), param_list1, param_list2, param_list3);
-    }
-
-    std::shared_ptr<ast::decl::Param> Parser::param() {
+    std::shared_ptr<ast::Declaration> Parser::param() {
         auto is_const = match(TokenType::CONST);
         auto variadic = match(TokenType::STAR);
         auto name = expect(TokenType::IDENTIFIER);
-        std::shared_ptr<ast::Type> param_type;
-        std::shared_ptr<ast::Expression> expr;
-        if (match(TokenType::COLON)) param_type = type();
-        if (match(TokenType::EQUAL)) expr = expression();
-        int line_start, col_start, line_end, col_end;
-        if (is_const) {
-            line_start = is_const->get_line_start();
-            col_start = is_const->get_col_start();
-        } else if (variadic) {
-            line_start = variadic->get_line_start();
-            col_start = variadic->get_col_start();
-        } else {
-            line_start = name->get_line_start();
-            col_start = name->get_col_start();
-        }
-        if (expr) {
-            line_end = expr->get_line_end();
-            col_end = expr->get_col_end();
-        } else if (param_type) {
-            line_end = param_type->get_line_end();
-            col_end = param_type->get_col_end();
-        } else {
-            line_end = name->get_line_end();
-            col_end = name->get_col_end();
-        }
-        return std::make_shared<ast::decl::Param>(line_start, line_end, col_start, col_end, is_const, variadic, name,
-                                                  param_type, expr);
+        if (match(TokenType::COLON)) auto param_type = type();
+        if (match(TokenType::EQ)) auto expr = expression();
     }
 
     std::shared_ptr<ast::Statement> Parser::statements() {
@@ -171,7 +107,12 @@ namespace spade
     std::shared_ptr<ast::Statement> Parser::block() {
         auto start = expect(TokenType::LBRACE);
         std::vector<std::shared_ptr<ast::Statement>> stmts;
-        while (peek()->get_type() != TokenType::RBRACE) stmts.push_back(statement());
+        while (true) {
+            if (auto stmt = rule_optional<ast::Statement>([&] { return statement(); })) {
+                stmts.push_back(stmt);
+            } else
+                break;
+        }
         auto end = expect(TokenType::RBRACE);
         return std::make_shared<ast::stmt::Block>(start, end, stmts);
     }
@@ -552,10 +493,9 @@ namespace spade
     }
 
     std::shared_ptr<ast::expr::Argument> Parser::argument() {
-        std::shared_ptr<Token> name;
-        if (peek()->get_type() == TokenType::IDENTIFIER && peek(1)->get_type() == TokenType::COLON) {
-            name = advance();
-            advance();
+        std::shared_ptr<Token> name = match(TokenType::IDENTIFIER);
+        if (name && !match(TokenType::COLON)) {
+            return std::make_shared<ast::expr::Argument>(std::make_shared<ast::expr::Constant>(name));
         }
         auto expr = expression();
         return name ? std::make_shared<ast::expr::Argument>(name, expr) : std::make_shared<ast::expr::Argument>(expr);
@@ -787,18 +727,6 @@ namespace spade
         list.push_back(reference());
         while (match(TokenType::COMMA)) {
             if (auto item = rule_optional<ast::Reference>([this] { return reference(); })) {
-                list.push_back(item);
-            } else
-                break;
-        }
-        return list;
-    }
-
-    std::vector<std::shared_ptr<ast::decl::Param>> Parser::param_list() {
-        std::vector<std::shared_ptr<ast::decl::Param>> list;
-        list.push_back(param());
-        while (match(TokenType::COMMA)) {
-            if (auto item = rule_optional<ast::decl::Param>([this] { return param(); })) {
                 list.push_back(item);
             } else
                 break;

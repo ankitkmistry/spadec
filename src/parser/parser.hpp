@@ -17,7 +17,7 @@ namespace spade
         void fill_tokens_buffer(int n);
 
         std::shared_ptr<Token> current();
-        std::shared_ptr<Token> peek();
+        std::shared_ptr<Token> peek(int i = 0);
         std::shared_ptr<Token> advance();
 
         std::shared_ptr<Token> match(TokenType type);
@@ -62,14 +62,18 @@ namespace spade
         // Parser rules
         std::shared_ptr<ast::Reference> reference();
 
+        // Declarations
+      public:
+        std::shared_ptr<ast::Declaration> function_decl();
+
+      private:
+        std::shared_ptr<ast::decl::Params> params();
+        std::shared_ptr<ast::decl::Param> param();
+
         // Statements
         std::shared_ptr<ast::Statement> statements();
         std::shared_ptr<ast::Statement> block();
-
-      public:
         std::shared_ptr<ast::Statement> statement();
-
-      private:
         std::shared_ptr<ast::Statement> if_stmt();
         std::shared_ptr<ast::Statement> while_stmt();
         std::shared_ptr<ast::Statement> do_while_stmt();
@@ -118,7 +122,7 @@ namespace spade
         std::vector<std::shared_ptr<ast::expr::Argument>> argument_list();
         std::vector<std::shared_ptr<ast::expr::Slice>> slice_list();
         std::vector<std::shared_ptr<ast::Reference>> reference_list();
-
+        std::vector<std::shared_ptr<ast::decl::Param>> param_list();
 
       public:
         explicit Parser(Lexer *lexer) : lexer(lexer) {}

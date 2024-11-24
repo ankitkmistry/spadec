@@ -16,26 +16,30 @@ void compile() {
     buffer << in.rdbuf();
     Lexer lexer(buffer.str());
     Parser parser(&lexer);
-    auto ast = parser.statement();
+    auto ast = parser.function_decl();
     ast::Printer printer{ast};
     std::cout << printer;
-    // auto token = lexer.next_token();
-    // while (token->get_type() != TokenType::END_OF_FILE) {
-    //     std::cout << *token << '\n';
-    //     token = lexer.next_token();
-    // }
 }
 
 void repl() {
-    string code;
     while (true) {
+        std::stringstream code;
         std::cout << ">>> ";
-        std::getline(std::cin, code);
-        if (code == "exit" || code == "quit") break;
+        while (true) {
+            if (!code.str().empty()) std::cout << "... ";
+            string line;
+            std::getline(std::cin, line);
+            if (!line.empty() && line.back() == ';') {
+                if (line.size() > 1) code << line.substr(0, line.size() - 1) << '\n';
+                break;
+            }
+            code << line << '\n';
+        }
+        if (code.str() == "exit" || code.str() == "quit") return;
         try {
-            Lexer lexer(code);
+            Lexer lexer(code.str());
             Parser parser(&lexer);
-            auto tree = parser.statement();
+            auto tree = parser.function_decl();
             ast::Printer printer{tree};
             std::cout << printer;
         } catch (const LexerError &err) {

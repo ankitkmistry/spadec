@@ -126,5 +126,10 @@ namespace spade::ast
         void visit(stmt::Return &stmt) override;
         void visit(stmt::Yield &stmt) override;
         void visit(stmt::Expr &stmt) override;
+
+    public:
+        void visit(decl::Param &node) override;
+        void visit(decl::Params &node) override;
+        void visit(decl::Function &node) override;
     };
 }    // namespace spade::ast

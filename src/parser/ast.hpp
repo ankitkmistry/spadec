@@ -6,6 +6,13 @@
 
 namespace spade::ast
 {
+    namespace decl
+    {
+        class Param;
+        class Params;
+        class Function;
+    }    // namespace decl
+
     class Reference;
     class AstNode;
     class Expression;
@@ -57,7 +64,14 @@ namespace spade::ast
 
     class VisitorBase {
       public:
+        VisitorBase() = default;
+        VisitorBase(const VisitorBase &other) = default;
+        VisitorBase(VisitorBase &&other) noexcept = default;
+        VisitorBase &operator=(const VisitorBase &other) = default;
+        VisitorBase &operator=(VisitorBase &&other) noexcept = default;
         virtual ~VisitorBase() = default;
+
+        // Visitor
         virtual void visit(Reference &node) = 0;
         virtual void visit(expr::Argument &node) = 0;
         virtual void visit(expr::Slice &node) = 0;
@@ -95,6 +109,18 @@ namespace spade::ast
         virtual void visit(stmt::Return &node) = 0;
         virtual void visit(stmt::Yield &node) = 0;
         virtual void visit(stmt::Expr &node) = 0;
+        // Declaration visitor
+        virtual void visit(decl::Param &node) = 0;
+        virtual void visit(decl::Params &node) = 0;
+        virtual void visit(decl::Function &node) = 0;
+    };
+
+    template<typename T>
+    concept HasLineInfo = requires(T t) {
+        { t->get_line_start() } -> std::same_as<int>;
+        { t->get_line_end() } -> std::same_as<int>;
+        { t->get_col_start() } -> std::same_as<int>;
+        { t->get_col_end() } -> std::same_as<int>;
     };
 
     class AstNode {
@@ -108,25 +134,9 @@ namespace spade::ast
         AstNode(int line_start, int line_end, int col_start, int col_end)
             : line_start(line_start), line_end(line_end), col_start(col_start), col_end(col_end) {}
 
-        AstNode(std::shared_ptr<Token> start, std::shared_ptr<Token> end)
-            : line_start(start->get_line_start()),
-              line_end(end->get_line_end()),
-              col_start(start->get_col_start()),
-              col_end(end->get_col_end()) {}
-
-        AstNode(std::shared_ptr<AstNode> start, std::shared_ptr<AstNode> end)
-            : line_start(start->get_line_start()),
-              line_end(end->get_line_end()),
-              col_start(start->get_col_start()),
-              col_end(end->get_col_end()) {}
-
-        AstNode(std::shared_ptr<Token> start, std::shared_ptr<AstNode> end)
-            : line_start(start->get_line_start()),
-              line_end(end->get_line_end()),
-              col_start(start->get_col_start()),
-              col_end(end->get_col_end()) {}
-
-        AstNode(std::shared_ptr<AstNode> start, std::shared_ptr<Token> end)
+        template<typename T1, typename T2>
+            requires HasLineInfo<T1> && HasLineInfo<T2>
+        AstNode(T1 start, T2 end)
             : line_start(start->get_line_start()),
               line_end(end->get_line_end()),
               col_start(start->get_col_start()),
@@ -174,13 +184,9 @@ namespace spade::ast
 
     class Type : public AstNode {
       public:
-        Type(std::shared_ptr<Token> start, std::shared_ptr<Token> end) : AstNode(start, end) {}
-
-        Type(std::shared_ptr<AstNode> start, std::shared_ptr<AstNode> end) : AstNode(start, end) {}
-
-        Type(std::shared_ptr<Token> start, std::shared_ptr<AstNode> end) : AstNode(start, end) {}
-
-        Type(std::shared_ptr<AstNode> start, std::shared_ptr<Token> end) : AstNode(start, end) {}
+        template<typename T1, typename T2>
+            requires HasLineInfo<T1> && HasLineInfo<T2>
+        Type(T1 start, T2 end) : AstNode(start, end) {}
     };
 
     namespace type
@@ -300,13 +306,9 @@ namespace spade::ast
 
     class Expression : public AstNode {
       public:
-        Expression(std::shared_ptr<Token> start, std::shared_ptr<Token> end) : AstNode(start, end) {}
-
-        Expression(std::shared_ptr<AstNode> start, std::shared_ptr<AstNode> end) : AstNode(start, end) {}
-
-        Expression(std::shared_ptr<Token> start, std::shared_ptr<AstNode> end) : AstNode(start, end) {}
-
-        Expression(std::shared_ptr<AstNode> start, std::shared_ptr<Token> end) : AstNode(start, end) {}
+        template<typename T1, typename T2>
+            requires HasLineInfo<T1> && HasLineInfo<T2>
+        Expression(T1 start, T2 end) : AstNode(start, end) {}
     };
 
     namespace expr
@@ -660,18 +662,14 @@ namespace spade::ast
 
     class Statement : public AstNode {
       public:
-        Statement(std::shared_ptr<Token> start, std::shared_ptr<Token> end) : AstNode(start, end) {}
-
-        Statement(std::shared_ptr<AstNode> start, std::shared_ptr<AstNode> end) : AstNode(start, end) {}
-
-        Statement(std::shared_ptr<Token> start, std::shared_ptr<AstNode> end) : AstNode(start, end) {}
-
-        Statement(std::shared_ptr<AstNode> start, std::shared_ptr<Token> end) : AstNode(start, end) {}
+        template<typename T1, typename T2>
+            requires HasLineInfo<T1> && HasLineInfo<T2>
+        Statement(T1 start, T2 end) : AstNode(start, end) {}
     };
 
     namespace stmt
     {
-        class Block : public Statement {
+        class Block final : public Statement {
             std::vector<std::shared_ptr<Statement>> statements;
 
           public:
@@ -688,7 +686,7 @@ namespace spade::ast
             }
         };
 
-        class If : public Statement {
+        class If final : public Statement {
             std::shared_ptr<Expression> condition;
             std::shared_ptr<Statement> body;
             std::shared_ptr<Statement> else_body;
@@ -715,7 +713,7 @@ namespace spade::ast
             }
         };
 
-        class While : public Statement {
+        class While final : public Statement {
             std::shared_ptr<Expression> condition;
             std::shared_ptr<Statement> body;
             std::shared_ptr<Statement> else_body;
@@ -742,7 +740,7 @@ namespace spade::ast
             }
         };
 
-        class DoWhile : public Statement {
+        class DoWhile final : public Statement {
             std::shared_ptr<Statement> body;
             std::shared_ptr<Expression> condition;
             std::shared_ptr<Statement> else_body;
@@ -769,7 +767,7 @@ namespace spade::ast
             }
         };
 
-        class Throw : public Statement {
+        class Throw final : public Statement {
             std::shared_ptr<Expression> expression;
 
           public:
@@ -785,7 +783,7 @@ namespace spade::ast
             }
         };
 
-        class Catch : public Statement {
+        class Catch final : public Statement {
             std::vector<std::shared_ptr<Reference>> references;
             std::shared_ptr<Token> symbol;
             std::shared_ptr<Statement> body;
@@ -812,7 +810,7 @@ namespace spade::ast
             }
         };
 
-        class Try : public Statement {
+        class Try final : public Statement {
             std::shared_ptr<Statement> body;
             std::vector<std::shared_ptr<Statement>> catches;
             std::shared_ptr<Statement> finally;
@@ -839,7 +837,7 @@ namespace spade::ast
             }
         };
 
-        class Continue : public Statement {
+        class Continue final : public Statement {
           public:
             Continue(std::shared_ptr<Token> token) : Statement(token, token) {}
 
@@ -848,7 +846,7 @@ namespace spade::ast
             }
         };
 
-        class Break : public Statement {
+        class Break final : public Statement {
           public:
             Break(std::shared_ptr<Token> token) : Statement(token, token) {}
 
@@ -857,7 +855,7 @@ namespace spade::ast
             }
         };
 
-        class Return : public Statement {
+        class Return final : public Statement {
             std::shared_ptr<Expression> expression;
 
           public:
@@ -873,7 +871,7 @@ namespace spade::ast
             }
         };
 
-        class Yield : public Statement {
+        class Yield final : public Statement {
             std::shared_ptr<Expression> expression;
 
           public:
@@ -889,7 +887,7 @@ namespace spade::ast
             }
         };
 
-        class Expr : public Statement {
+        class Expr final : public Statement {
             std::shared_ptr<Expression> expression;
 
           public:
@@ -904,4 +902,123 @@ namespace spade::ast
             }
         };
     }    // namespace stmt
+
+    class Declaration : public AstNode {
+      public:
+        Declaration(int line_start, int line_end, int col_start, int col_end)
+            : AstNode(line_start, line_end, col_start, col_end) {}
+
+        template<typename T1, typename T2>
+            requires HasLineInfo<T1> && HasLineInfo<T2>
+        Declaration(T1 start, T2 end) : AstNode(start, end) {}
+    };
+
+    namespace decl
+    {
+        class Param : public Declaration {
+            std::shared_ptr<Token> is_const;
+            std::shared_ptr<Token> variadic;
+            std::shared_ptr<Token> name;
+            std::shared_ptr<Type> type;
+            std::shared_ptr<Expression> default_expr;
+
+          public:
+            Param(int line_start, int line_end, int col_start, int col_end, std::shared_ptr<Token> is_const,
+                  std::shared_ptr<Token> variadic, std::shared_ptr<Token> name, std::shared_ptr<Type> type,
+                  std::shared_ptr<Expression> default_expr)
+                : Declaration(line_start, line_end, col_start, col_end),
+                  is_const(is_const),
+                  variadic(variadic),
+                  name(name),
+                  type(type),
+                  default_expr(default_expr) {}
+
+            std::shared_ptr<Token> get_is_const() const {
+                return is_const;
+            }
+
+            std::shared_ptr<Token> get_variadic() const {
+                return variadic;
+            }
+
+            std::shared_ptr<Token> get_name() const {
+                return name;
+            }
+
+            std::shared_ptr<Type> get_type() const {
+                return type;
+            }
+
+            std::shared_ptr<Expression> get_default_expr() const {
+                return default_expr;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+
+        class Params : public Declaration {
+            std::vector<std::shared_ptr<Param>> pos_only;
+            std::vector<std::shared_ptr<Param>> pos_kwd;
+            std::vector<std::shared_ptr<Param>> kwd_only;
+
+          public:
+            template<typename T1, typename T2>
+                requires HasLineInfo<T1> && HasLineInfo<T2>
+            Params(T1 start, T2 end, const std::vector<std::shared_ptr<Param>> &pos_only,
+                   const std::vector<std::shared_ptr<Param>> &pos_kwd, const std::vector<std::shared_ptr<Param>> &kwd_only)
+                : Declaration(start, end), pos_only(pos_only), pos_kwd(pos_kwd), kwd_only(kwd_only) {}
+
+            const std::vector<std::shared_ptr<Param>> &get_pos_only() const {
+                return pos_only;
+            }
+
+            const std::vector<std::shared_ptr<Param>> &get_pos_kwd() const {
+                return pos_kwd;
+            }
+
+            const std::vector<std::shared_ptr<Param>> &get_kwd_only() const {
+                return kwd_only;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+
+        class Function : public Declaration {
+            std::shared_ptr<Token> name;
+            std::shared_ptr<Params> params;
+            std::shared_ptr<Type> return_type;
+            std::shared_ptr<Statement> definition;
+
+          public:
+            template<typename T>
+                requires HasLineInfo<T>
+            Function(std::shared_ptr<Token> token, T end, std::shared_ptr<Token> name, std::shared_ptr<Params> params,
+                     std::shared_ptr<Type> return_type, std::shared_ptr<Statement> definition)
+                : Declaration(token, end), name(name), params(params), return_type(return_type), definition(definition) {}
+
+            std::shared_ptr<Token> get_name() const {
+                return name;
+            }
+
+            std::shared_ptr<Params> get_params() const {
+                return params;
+            }
+
+            std::shared_ptr<Type> get_return_type() const {
+                return return_type;
+            }
+
+            std::shared_ptr<Statement> get_definition() const {
+                return definition;
+            }
+
+            void accept(VisitorBase *visitor) override {
+                visitor->visit(*this);
+            }
+        };
+    }    // namespace decl
 }    // namespace spade::ast

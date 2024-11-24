@@ -20,63 +20,43 @@ declaration: modifiers (
             );
 
 // Enum declaration
-enumDecl: ENUM IDENTIFIER (IMPLEMENTS parentList)? ('{' enumList sep memberDecl* '}')?;
-
+enumDecl: ENUM IDENTIFIER (':' parentList)? ('{' enumList sep memberDecl* '}')?;
 enumList: enumerator (',' enumerator)* ','?;
 enumerator: IDENTIFIER ('=' expr | '(' args? ')')?;
 
-// Annotation declaration
-annoDecl: ANNOTATION declName (EXTENDS parent)? (IMPLEMENTS parentList)? ('{' memberDecl* '}')?;
-// Interface declaration
-interfaceDecl: INTERFACE declName (EXTENDS parentList)? ('{' memberDecl* '}')?;
-// Class declaration
-classDecl: CLASS declName (EXTENDS parent)? (IMPLEMENTS parentList)? ('{' memberDecl* '}')?;
+annoDecl: ANNOTATION declName (':' parentList)? ('{' memberDecl* '}')?;
+interfaceDecl: INTERFACE declName (':' parentList)? ('{' memberDecl* '}')?;
+classDecl: CLASS declName (':' parentList)? ('{' memberDecl* '}')?;
 
 parentList: parent (',' parent)* ','?;
-parent: reference ('<'typeArgs'>')?;
+parent: reference ('[' typeArgs ']')?;
 
-declName: IDENTIFIER ('<' typeParams '>')?;
+declName: IDENTIFIER ('[' typeParams ']')?;
 typeParams: typeParam (',' typeParam)* ','?;
-typeParam: (OUT | IN)? IDENTIFIER (':' variantOf=type)? ('=' defaultValue=type)?;
+typeParam: (OUT | IN)? IDENTIFIER (':' type)? ('=' type)?;
 
 // Member declaration
 memberDecl: modifiers (
-                fieldDecl
-              | methodDecl
-              | constructorDecl
+                varDecl
+              | functionDecl
+              | initDecl
               | classDecl
               | interfaceDecl
               | enumDecl
            ) sep;
 
-fieldDecl: CONST? name ('=' expr)?;
-methodDecl: (IDENTIFIER | 'operator' op=operators | 'as' type) '(' params? ')' ('->' type)? definition?;
-operators: '!' | '-' | '~' | '+'
-         | '??'
-         | '**' | '*' | '/' | '%'
-         | '<<' | '>>>' | '>>'
-         | '<' | '<=' | '==' | '!=' | '>=' | '>'
-         | '&' | '^' | '|'
-         | 'is' 'not'? | 'not'? 'in'
-         | 'not' | 'and' | 'or';
-constructorDecl: INIT '(' params? ')' definition?;
+modifiers: (ABSTRACT | FINAL | STATIC | INLINE | PRIVATE | INTERNAL | PROTECTED | PUBLIC)*;
 
-modifiers: (ABSTRACT | FINAL | STATIC | INLINE | accessors)*;
-accessors: PRIVATE | INTERNAL | PROTECTED | PUBLIC;
+varDecl: (VAR | CONST) (IDENTIFIER (':' type)? | destructDecl) ('=' expr)?;
 
-// Function declaration
-functionDecl: FUN methodDecl;
-definition: '=' stmt sep | block;
+initDecl: INIT '(' params? ')' definition?;
 
-// Parameter declaration
-params: paramList ('|' paramList?)?;
+functionDecl: FUN IDENTIFIER '(' params? ')' ('->' type)? definition?;
+params: paramList ('*' paramList)? ('/' paramList)?;
 paramList: param (',' param)* ','?;
-param: (CONST | REF)? '*'? (IDENTIFIER | '_') (':' type)? ('=' expr)?;
+param: CONST? '*'? (IDENTIFIER | '_') (':' type)? ('=' expr)?;
 
-// Variable declaration
-varDecl: (VAR | CONST) name ('=' expr)?;
-
-name: IDENTIFIER (':' type)? | destructDecl;
+definition: '=' stmt sep | block;
 
 // Statement
 stmts: stmt sep | block;

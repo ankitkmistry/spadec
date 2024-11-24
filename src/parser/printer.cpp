@@ -293,4 +293,31 @@ namespace spade::ast
         ss << "stmt::Expr";
         print(stmt.get_expression(), "expression");
     }
+
+    void Printer::visit(decl::Param &node) {
+        write_repr(&node);
+        ss << "decl::Param";
+        print(node.get_is_const(), "is_const");
+        print(node.get_variadic(), "variadic");
+        print(node.get_name(), "name");
+        print(node.get_type(), "type");
+        print(node.get_default_expr(), "default_expr");
+    }
+
+    void Printer::visit(decl::Params &node) {
+        write_repr(&node);
+        ss << "decl::Params";
+        print(node.get_pos_only(), "pos_only");
+        print(node.get_pos_kwd(), "pos_kwd");
+        print(node.get_kwd_only(), "kwd_only");
+    }
+
+    void Printer::visit(decl::Function &node) {
+        write_repr(&node);
+        ss << "decl::Function";
+        print(node.get_name(), "name");
+        print(node.get_params(), "params");
+        print(node.get_return_type(), "return_type");
+        print(node.get_definition(), "definition");
+    }
 }    // namespace spade::ast
