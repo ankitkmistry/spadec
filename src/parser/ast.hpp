@@ -1,8 +1,6 @@
 #pragma once
 
-#include "utils/common.hpp"
 #include "lexer/token.hpp"
-#include "utils/utils.hpp"
 
 namespace spade::ast
 {
@@ -1365,6 +1363,8 @@ namespace spade::ast
             return path;
         }
 
+        fs::path get_path(const fs::path& root_path, std::shared_ptr<Module> module) const;
+
         std::shared_ptr<Token> get_alias() const {
             return alias;
         }
@@ -1375,6 +1375,7 @@ namespace spade::ast
     };
 
     class Module final : public AstNode {
+        fs::path file_path;
         std::vector<std::shared_ptr<Import>> imports;
         std::vector<std::shared_ptr<Declaration>> members;
 
@@ -1382,8 +1383,12 @@ namespace spade::ast
         template<typename T1, typename T2>
             requires HasLineInfo<T1> && HasLineInfo<T2>
         Module(T1 start, T2 end, const std::vector<std::shared_ptr<Import>> &imports,
-               const std::vector<std::shared_ptr<Declaration>> &members)
-            : AstNode(start, end), imports(imports), members(members) {}
+               const std::vector<std::shared_ptr<Declaration>> &members, const fs::path &file_path)
+            : AstNode(start, end), file_path(file_path), imports(imports), members(members) {}
+
+        const fs::path &get_file_path() const {
+            return file_path;
+        }
 
         const std::vector<std::shared_ptr<Import>> &get_imports() const {
             return imports;

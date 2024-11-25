@@ -407,7 +407,7 @@ namespace spade::ast
 
     void Printer::visit(Module &node) {
         write_repr(&node);
-        ss << "Module";
+        ss << "Module '" << node.get_file_path().generic_string() << "'";
         print(node.get_imports(), "imports");
         print(node.get_members(), "members");
     }

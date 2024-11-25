@@ -32,6 +32,8 @@
 #include <stack>
 #include <memory>
 #include <format>
+#include <filesystem>
+#include <map>
 #include <functional>
 
 #define null (nullptr)
@@ -39,6 +41,7 @@
 namespace spade
 {
     using std::string;
+    namespace fs = std::filesystem;
 
     template<typename T>
     concept StringConvertible = requires(T t) {

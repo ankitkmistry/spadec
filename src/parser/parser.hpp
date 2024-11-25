@@ -10,6 +10,7 @@ namespace spade
         static constexpr int FILL_CONSTANT = 64;
 
       private:
+        fs::path file_path;
         Lexer *lexer;
         std::vector<std::shared_ptr<Token>> tokens;
         int index = 0;
@@ -175,7 +176,7 @@ namespace spade
         std::vector<std::shared_ptr<ast::type::TypeBuilderMember>> type_builder_member_list();
 
       public:
-        explicit Parser(Lexer *lexer) : lexer(lexer) {}
+        explicit Parser(const fs::path &file_path, Lexer *lexer) : file_path(file_path), lexer(lexer) {}
 
         Parser(const Parser &other) = default;
         Parser(Parser &&other) noexcept = default;

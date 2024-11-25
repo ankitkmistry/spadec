@@ -37,6 +37,7 @@ namespace spade
 
     std::shared_ptr<Token> Lexer::get_token(TokenType type) {
         auto token = make_token(type, data.substr(start, end - start), line, col);
+        col += end - start;
         start = end;
         return token;
     }
@@ -89,9 +90,7 @@ namespace spade
         }
         while (!is_at_end()) {
             start = end;
-            int c = advance();
-            col++;
-            switch (c) {
+            switch (int c = advance()) {
                 case '(':
                     return get_token(TokenType::LPAREN);
                 case ')':
@@ -132,12 +131,7 @@ namespace spade
                     if (match('*')) return get_token(TokenType::STAR_STAR);
                     return get_token(TokenType::STAR);
                 case '/': {
-                    if (match('/')) {
-                        while (peek() != '\n') {
-                            if (peek() == EOF) return get_token(TokenType::END_OF_FILE);
-                            advance();
-                        }
-                    } else if (match('*')) {
+                    if (match('*')) {
                         while (true) {
                             if (match('*') && match('/')) break;
                             advance();
@@ -181,14 +175,21 @@ namespace spade
                     }
                     return get_token(TokenType::STRING);
                 // Whitespace
+                case '#':
+                    while (peek() != '\n') {
+                        if (peek() == EOF) return get_token(TokenType::END_OF_FILE);
+                        advance();
+                    }
+                    break;
                 case ' ':
                 case '\t':
                 case '\r':
                     start = end;
+                    col++;
                     break;
                 case '\n':
                     line++;
-                    col = 0;
+                    col = 1;
                     start = end;
                     break;
                 default: {

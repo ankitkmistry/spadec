@@ -62,9 +62,9 @@ namespace spade
         while (peek()->get_type() == TokenType::IMPORT) imports.push_back(import());
         std::vector<std::shared_ptr<ast::Declaration>> members;
         while (peek()->get_type() != TokenType::END_OF_FILE) members.push_back(declaration());
-        if (!imports.empty()) return std::make_shared<ast::Module>(imports.front(), current(), imports, members);
-        if (!members.empty()) return std::make_shared<ast::Module>(members.front(), current(), imports, members);
-        return std::make_shared<ast::Module>(peek(), peek(), imports, members);
+        if (!imports.empty()) return std::make_shared<ast::Module>(imports.front(), current(), imports, members, file_path);
+        if (!members.empty()) return std::make_shared<ast::Module>(members.front(), current(), imports, members, file_path);
+        return std::make_shared<ast::Module>(peek(), peek(), imports, members, file_path);
     }
 
     std::shared_ptr<ast::Import> Parser::import() {
@@ -177,7 +177,8 @@ namespace spade
     std::shared_ptr<ast::Declaration> Parser::init_decl() {
         auto token = expect(TokenType::INIT);
         expect(TokenType::LPAREN);
-        auto init_params = params();
+        std::shared_ptr<ast::decl::Params> init_params;
+        if (peek()->get_type() != TokenType::RPAREN) init_params = params();
         expect(TokenType::RPAREN);
         std::shared_ptr<ast::Statement> def;
         if (match(TokenType::EQUAL)) def = statement();
@@ -1077,6 +1078,8 @@ namespace spade
     }
 
     std::shared_ptr<ast::Module> Parser::parse() {
-        return module();
+        auto mod = module();
+        index = 0;
+        return mod;
     }
 }    // namespace spade

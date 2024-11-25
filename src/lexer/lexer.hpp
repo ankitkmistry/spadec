@@ -12,7 +12,7 @@ namespace spade
         int start = 0;
         int end = 0;
         int line = 1;
-        int col = 0;
+        int col = 1;
 
         std::stack<std::shared_ptr<Token>> token_buffer;
 
