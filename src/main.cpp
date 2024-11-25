@@ -1,3 +1,4 @@
+#include <clocale>
 #include <iostream>
 #include <fstream>
 
@@ -26,30 +27,25 @@ static int num_digits(int x) {
 static void print_error(const CompilerError &err, const fs::path &path) {
     std::vector<string> lines;
     std::ifstream in(path);
-    int max_digits = num_digits(err.get_line_end() + 1);
+    int max_digits = num_digits(err.get_line_end());
     std::cout << std::format("error [{}:{}]->[{}:{}]: {}\n", err.get_line_start(), err.get_col_start(), err.get_line_end(),
                              err.get_col_end(), err.what());
+    std::cout << std::format("in file: {}\n", path.generic_string());
     for (int i = 1; !in.eof(); i++) {
         string line;
         std::getline(in, line);
         if (err.get_line_start() <= i && i <= err.get_line_end()) {
-            string under;
-            if (i == err.get_line_start() && i == err.get_line_end()) {
-                for (int j = 1; j <= line.size(); ++j) {
-                    under += err.get_col_start() <= j && j <= err.get_col_end() ? '^' : ' ';
-                }
-            } else if (i == err.get_line_start()) {
-                for (int j = 1; j <= line.size(); ++j) {
-                    under += err.get_col_start() <= j ? '^' : ' ';
-                }
-            } else if (i == err.get_line_end()) {
-                for (int j = 1; j <= line.size(); ++j) {
-                    under += j <= err.get_col_end() ? '^' : ' ';
-                }
-            } else
-                under = string(line.size(), '^');
             std::cout << std::format("{: {}d} | {}\n", i, max_digits, line);
-            std::cout << std::format(" {}   {}\n", string(max_digits, ' '), under);
+            std::cout << string(max_digits + 4, ' ');
+            if (i == err.get_line_start() && i == err.get_line_end())
+                for (int j = 1; j <= line.size(); ++j)
+                    std::cout << (err.get_col_start() <= j && j <= err.get_col_end() ? '^' : ' ');
+            else if (i == err.get_line_start())
+                for (int j = 1; j <= line.size(); ++j) std::cout << (err.get_col_start() <= j ? '^' : ' ');
+            else if (i == err.get_line_end())
+                for (int j = 1; j <= line.size(); ++j) std::cout << (j <= err.get_col_end() ? '^' : ' ');
+            else
+                std::cout << string(line.size(), '^');
         }
     }
 }
@@ -58,15 +54,18 @@ void compile() {
     fs::path file_path;
     try {
         file_path = R"(D:\Programming (Ankit)\Projects\spade\1.0\spadec\src\test.sp)";
-        std::ifstream in(file_path);
-        if (!in) throw FileOpenError(file_path.string());
-        std::stringstream buffer;
-        buffer << in.rdbuf();
-        Lexer lexer(buffer.str());
-        Parser parser(file_path, &lexer);
-        auto tree = parser.parse();
-        ImportResolver resolver(file_path.parent_path(), tree);
-        auto modules = resolver.resolve_imports();
+        std::vector<std::shared_ptr<ast::Module>> modules;
+        {
+            std::ifstream in(file_path);
+            if (!in) throw FileOpenError(file_path.string());
+            std::stringstream buffer;
+            buffer << in.rdbuf();
+            Lexer lexer(buffer.str());
+            Parser parser(file_path, &lexer);
+            auto tree = parser.parse();
+            ImportResolver resolver(file_path.parent_path(), tree);
+            modules = resolver.resolve_imports();
+        }
         for (const auto &module: modules) {
             ast::Printer printer{module};
             std::cout << printer << '\n';
@@ -101,6 +100,7 @@ void repl() {
 
 int main() {
     try {
+        std::setlocale(LC_CTYPE, "en_US.UTF-8");
         compile();
         // repl();
     } catch (const CompilerError &err) {

@@ -86,4 +86,6 @@ namespace spade
         }
         return ss.str();
     }
+
+    bool unescape(string& text);
 }    // namespace spade

@@ -1,5 +1,4 @@
 #include "lexer.hpp"
-
 #include "utils/error.hpp"
 
 namespace spade
